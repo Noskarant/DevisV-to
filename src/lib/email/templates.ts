@@ -19,8 +19,8 @@ function button(url: string, label: string) {
 export function documentReceivedTemplate(petName: string) {
   return layout(
     "Votre document a bien été reçu",
-    `<p>Nous avons bien reçu le devis concernant ${petName}. Il est en cours de lecture.</p>
-     <p>Vous pourrez consulter un aperçu gratuit puis débloquer l'explication complète depuis votre espace.</p>`
+    `<p>Nous avons bien reçu le document concernant ${petName}. Il est en cours de lecture.</p>
+     <p>Vous pourrez consulter un aperçu gratuit puis choisir la formule qui vous convient.</p>`
   );
 }
 
@@ -29,15 +29,15 @@ export function previewReadyTemplate(petName: string, previewUrl: string) {
     `L'aperçu de ${petName} est disponible`,
     `<p>Le document a été lu et organisé. Vous pouvez consulter gratuitement plusieurs explications, les premières questions à poser et les points à faire préciser.</p>
      ${button(previewUrl, "Consulter mon aperçu privé")}
-     <p style="font-size:12px;color:#829791;">Le rapport complet est proposé à 6,90 €, en paiement unique et sans abonnement.</p>`
+     <p style="font-size:12px;color:#829791;">Vous pourrez choisir une analyse unique à 8,90 € ou DevisVéto Plus à 6,90 €/mois. L'abonnement est facultatif et résiliable à tout moment.</p>`
   );
 }
 
 export function paymentConfirmedTemplate(petName: string) {
   return layout(
-    "Paiement confirmé",
-    `<p>Votre paiement a bien été validé. L'analyse du devis de ${petName} est en cours de vérification par notre équipe.</p>
-     <p>Vous recevrez un email dès que votre rapport sera prêt.</p>`
+    "Accès confirmé",
+    `<p>Votre accès a bien été validé. L'analyse du document de ${petName} est en cours de vérification par notre équipe.</p>
+     <p>Le document est enregistré dans son dossier. Vous recevrez un email dès que le rapport sera prêt.</p>`
   );
 }
 
@@ -52,7 +52,7 @@ export function needsInformationTemplate(petName: string) {
 export function reportReadyTemplate(petName: string, reportUrl: string) {
   return layout(
     "Votre rapport est disponible",
-    `<p>L'explication du devis de ${petName} est prête et a été relue par notre équipe.</p>
+    `<p>L'explication du document de ${petName} est prête et a été relue par notre équipe.</p>
      ${button(reportUrl, "Consulter mon rapport")}`
   );
 }
@@ -60,7 +60,7 @@ export function reportReadyTemplate(petName: string, reportUrl: string) {
 export function feedbackRequestTemplate(petName: string) {
   return layout(
     "Votre avis nous intéresse",
-    `<p>Vous avez consulté l'explication du devis de ${petName}. Cette explication vous a-t-elle été utile ?</p>
+    `<p>Vous avez consulté l'explication du document de ${petName}. Cette explication vous a-t-elle été utile ?</p>
      <p>Deux minutes suffisent pour nous aider à améliorer le service.</p>`
   );
 }

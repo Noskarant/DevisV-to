@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getBillingSummary, isSubscriptionActive } from "@/lib/billing/entitlements";
 import { loadPublicPreview } from "@/lib/public-preview/data";
 import { previewSchema, type PreviewPayload } from "@/lib/public-preview/types";
-import { CheckoutButton } from "./checkout-button";
+import { PurchaseOptions } from "./checkout-button";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,12 @@ function firstRelation<T>(relation: T | T[] | null | undefined): T | null {
 }
 
 function payloadFromStoredData(data: NonNullable<Awaited<ReturnType<typeof loadPublicPreview>>>): PreviewPayload {
-  const pet = firstRelation(data.caseRow.pets as { name: string; species: string } | Array<{ name: string; species: string }> | null);
+  const pet = firstRelation(
+    data.caseRow.pets as
+      | { id: string; name: string; species: string }
+      | Array<{ id: string; name: string; species: string }>
+      | null
+  );
   const raw = previewSchema.safeParse(data.report?.ai_raw_output);
   if (raw.success) return raw.data;
 
@@ -48,10 +54,15 @@ function payloadFromStoredData(data: NonNullable<Awaited<ReturnType<typeof loadP
   const factors = Array.isArray(data.report?.price_variation_factors)
     ? (data.report?.price_variation_factors as string[])
     : [];
-  const composition = data.report?.amount_composition as { categories?: string[]; intervention?: string } | null;
+  const composition = data.report?.amount_composition as {
+    categories?: string[];
+    intervention?: string;
+  } | null;
 
   return previewSchema.parse({
-    intervention: composition?.intervention || `${data.caseRow.document_type === "facture" ? "Facture" : "Devis"} vétérinaire`,
+    intervention:
+      composition?.intervention ||
+      `${data.caseRow.document_type === "facture" ? "Facture" : "Devis"} vétérinaire`,
     total_amount: data.caseRow.detected_total_amount,
     currency: data.caseRow.currency || "EUR",
     summary: data.report?.summary || `Le document de ${pet?.name || "votre animal"} a été lu et organisé.`,
@@ -96,8 +107,14 @@ export default async function PreviewPage({
   const data = await loadPublicPreview(token);
   if (!data) notFound();
 
+  const billing = await getBillingSummary(data.caseRow.user_id);
   const preview = payloadFromStoredData(data);
-  const pet = firstRelation(data.caseRow.pets as { name: string; species: string } | Array<{ name: string; species: string }> | null);
+  const pet = firstRelation(
+    data.caseRow.pets as
+      | { id: string; name: string; species: string }
+      | Array<{ id: string; name: string; species: string }>
+      | null
+  );
   const paid = data.caseRow.payment_status === "succeeded" || data.payment?.status === "succeeded";
   const paymentReturning = query.payment === "success" && !paid;
   const visibleLines = preview.lines.slice(0, 2);
@@ -111,11 +128,11 @@ export default async function PreviewPage({
     <main className="min-h-screen bg-[#f4f7f4] text-[#173b35]">
       <header className="border-b border-[#dce7e2] bg-white/95">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <BrandMark />
-            <span className="text-lg font-extrabold tracking-[-0.035em] text-[#123f38]">DevisVéto</span>
-          </Link>
-          <div className="rounded-full bg-[#e7f3ee] px-3 py-1.5 text-xs font-extrabold text-[#397268]">Lien privé</div>
+          <Link href="/" className="flex items-center gap-3"><BrandMark /><span className="text-lg font-extrabold tracking-[-0.035em] text-[#123f38]">DevisVéto</span></Link>
+          <div className="flex items-center gap-3">
+            {pet?.id && <Link href={`/dashboard/animaux/${pet.id}`} className="hidden text-sm font-extrabold text-[#45665f] hover:text-[#0c5b50] sm:block">Dossier de {pet.name}</Link>}
+            <div className="rounded-full bg-[#e7f3ee] px-3 py-1.5 text-xs font-extrabold text-[#397268]">Lien privé</div>
+          </div>
         </div>
       </header>
 
@@ -136,24 +153,18 @@ export default async function PreviewPage({
 
         {paymentReturning && (
           <div className="mb-6 rounded-2xl border border-[#efd5a9] bg-[#fff9ed] px-5 py-4 text-sm font-semibold text-[#7a5c25]">
-            Paiement reçu. La confirmation est en cours ; cette page se mettra à jour dès validation.
+            Paiement reçu. La confirmation Stripe est en cours ; actualisez cette page dans quelques instants si nécessaire.
           </div>
         )}
 
-        <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-start">
           <div className="space-y-7">
             <section className="rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.07)] sm:p-8">
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Lecture du document</p>
-                  <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">{preview.intervention}</h2>
-                </div>
+                <div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Lecture du document</p><h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">{preview.intervention}</h2></div>
                 <div className="rounded-full bg-[#edf6f2] px-4 py-2 text-xs font-extrabold text-[#397268]">{preview.lines.length} ligne{preview.lines.length > 1 ? "s" : ""} identifiée{preview.lines.length > 1 ? "s" : ""}</div>
               </div>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                {preview.categories.map((category) => <span key={category} className="rounded-full border border-[#d4e4de] bg-[#f7faf9] px-3 py-1.5 text-xs font-bold text-[#4a7068]">{category}</span>)}
-              </div>
+              <div className="mt-6 flex flex-wrap gap-2">{preview.categories.map((category) => <span key={category} className="rounded-full border border-[#d4e4de] bg-[#f7faf9] px-3 py-1.5 text-xs font-bold text-[#4a7068]">{category}</span>)}</div>
             </section>
 
             <section className="rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.07)] sm:p-8">
@@ -161,7 +172,6 @@ export default async function PreviewPage({
                 <div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Explication ligne par ligne</p><h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Voyez exactement ce qui a été compris.</h2></div>
                 <span className="hidden text-xs font-bold text-[#78908a] sm:block">2 explications offertes</span>
               </div>
-
               <div className="mt-7 divide-y divide-[#e5ece9]">
                 {visibleLines.map((line, index) => (
                   <article key={`${line.original_label}-${index}`} className="py-6 first:pt-0">
@@ -173,17 +183,11 @@ export default async function PreviewPage({
                     {line.clarification && <div className="mt-3 rounded-xl bg-[#fff8f4] px-4 py-3 text-xs font-semibold leading-5 text-[#805a4c]">À préciser : {line.clarification}</div>}
                   </article>
                 ))}
-
                 {lockedLines.map((line, index) => (
                   <article key={`${line.original_label}-locked-${index}`} className="relative overflow-hidden py-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div><p className="text-sm font-extrabold text-[#204f47]">{line.original_label}</p><p className="mt-1 text-xs font-bold uppercase tracking-[0.09em] text-[#78908a]">{line.category}</p></div>
-                      <p className="shrink-0 text-sm font-extrabold text-[#123f38]">{formatMoney(line.amount, preview.currency)}</p>
-                    </div>
+                    <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-extrabold text-[#204f47]">{line.original_label}</p><p className="mt-1 text-xs font-bold uppercase tracking-[0.09em] text-[#78908a]">{line.category}</p></div><p className="shrink-0 text-sm font-extrabold text-[#123f38]">{formatMoney(line.amount, preview.currency)}</p></div>
                     <p className="mt-3 max-h-12 overflow-hidden text-sm leading-7 text-[#849792]">{line.explanation.slice(0, 110)}…</p>
-                    <div className="absolute inset-x-0 bottom-0 flex h-16 items-end justify-center bg-gradient-to-t from-white via-white/95 to-transparent pb-1">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-[#d3e1dc] bg-white px-3 py-1.5 text-xs font-extrabold text-[#56756e]"><LockIcon /> Explication complète verrouillée</span>
-                    </div>
+                    <div className="absolute inset-x-0 bottom-0 flex h-16 items-end justify-center bg-gradient-to-t from-white via-white/95 to-transparent pb-1"><span className="inline-flex items-center gap-2 rounded-full border border-[#d3e1dc] bg-white px-3 py-1.5 text-xs font-extrabold text-[#56756e]"><LockIcon /> Explication complète verrouillée</span></div>
                   </article>
                 ))}
               </div>
@@ -191,18 +195,15 @@ export default async function PreviewPage({
 
             <section className="grid gap-6 md:grid-cols-2">
               <div className="rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.07)]">
-                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Points à clarifier</p>
-                <h2 className="mt-2 font-serif text-2xl font-semibold tracking-[-0.035em] text-[#123f38]">Ce qui mérite une précision.</h2>
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Points à clarifier</p><h2 className="mt-2 font-serif text-2xl font-semibold tracking-[-0.035em] text-[#123f38]">Ce qui mérite une précision.</h2>
                 {visibleClarification ? <div className="mt-5 rounded-2xl bg-[#fff8f4] px-4 py-4 text-sm font-semibold leading-6 text-[#765448]">{visibleClarification}</div> : <p className="mt-5 text-sm leading-6 text-[#6c837d]">Aucune ambiguïté majeure n’a été détectée dans l’aperçu.</p>}
-                {lockedClarificationCount > 0 && <div className="mt-3 flex items-center gap-2 rounded-2xl border border-dashed border-[#d5e1dd] px-4 py-3 text-sm font-bold text-[#718780]"><LockIcon /> {lockedClarificationCount} autre{lockedClarificationCount > 1 ? "s" : ""} point{lockedClarificationCount > 1 ? "s" : ""} identifié{lockedClarificationCount > 1 ? "s" : ""}</div>}
+                {lockedClarificationCount > 0 && <div className="mt-3 flex items-center gap-2 rounded-2xl border border-dashed border-[#d5e1dd] px-4 py-3 text-sm font-bold text-[#718780]"><LockIcon /> {lockedClarificationCount} autre{lockedClarificationCount > 1 ? "s" : ""} point{lockedClarificationCount > 1 ? "s" : ""}</div>}
               </div>
-
               <div className="rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.07)]">
-                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Questions personnalisées</p>
-                <h2 className="mt-2 font-serif text-2xl font-semibold tracking-[-0.035em] text-[#123f38]">Prêtes à poser à la clinique.</h2>
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Questions personnalisées</p><h2 className="mt-2 font-serif text-2xl font-semibold tracking-[-0.035em] text-[#123f38]">Prêtes à poser à la clinique.</h2>
                 <div className="mt-5 space-y-3">
                   {visibleQuestions.map((question, index) => <div key={question} className="rounded-2xl bg-[#edf6f2] px-4 py-3 text-sm font-semibold leading-6 text-[#315f57]"><span className="mr-2 text-[#0c5b50]">{index + 1}.</span>{question}</div>)}
-                  {lockedQuestionCount > 0 && <div className="flex items-center gap-2 rounded-2xl border border-dashed border-[#d5e1dd] px-4 py-3 text-sm font-bold text-[#718780]"><LockIcon /> {lockedQuestionCount} autre{lockedQuestionCount > 1 ? "s" : ""} question{lockedQuestionCount > 1 ? "s" : ""} dans le rapport</div>}
+                  {lockedQuestionCount > 0 && <div className="flex items-center gap-2 rounded-2xl border border-dashed border-[#d5e1dd] px-4 py-3 text-sm font-bold text-[#718780]"><LockIcon /> {lockedQuestionCount} autre{lockedQuestionCount > 1 ? "s" : ""} question{lockedQuestionCount > 1 ? "s" : ""}</div>}
                 </div>
               </div>
             </section>
@@ -219,28 +220,22 @@ export default async function PreviewPage({
               {paid ? (
                 <>
                   <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e5f3ed] text-xl text-[#0c5b50]">✓</div>
-                  <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Paiement confirmé</p>
+                  <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Accès confirmé</p>
                   <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Votre rapport complet est en vérification.</h2>
-                  <p className="mt-3 text-sm leading-6 text-[#6c837d]">Toutes les lignes, les points à clarifier et les questions seront relus avant livraison. Vous recevrez un email dès que le rapport sera prêt.</p>
-                  <Link href="/connexion" className="mt-6 inline-flex w-full justify-center rounded-full border border-[#cbdcd6] px-4 py-3 text-sm font-extrabold text-[#315f57] hover:bg-[#f1f6f4]">Accéder à mon espace</Link>
+                  <p className="mt-3 text-sm leading-6 text-[#6c837d]">Toutes les lignes et questions seront relues avant livraison. Le document est déjà rattaché au dossier de {pet?.name || "votre animal"}.</p>
+                  <Link href={pet?.id ? `/dashboard/animaux/${pet.id}` : "/dashboard"} className="mt-6 inline-flex w-full justify-center rounded-full bg-[#0c5b50] px-4 py-3 text-sm font-extrabold text-white hover:bg-[#084d44]">Voir son dossier</Link>
                 </>
               ) : (
                 <>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Rapport complet</p>
-                  <div className="mt-2 flex items-baseline gap-2"><span className="font-serif text-5xl font-semibold tracking-[-0.05em] text-[#123f38]">6,90 €</span><span className="text-xs font-bold text-[#829791]">une seule fois</span></div>
-                  <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#526f68]">
-                    <li>✓ Toutes les lignes expliquées</li><li>✓ Tous les points à faire préciser</li><li>✓ 5 à 8 questions personnalisées</li><li>✓ Facteurs qui peuvent influencer le montant</li><li>✓ Vérification humaine avant livraison</li><li>✓ Rapport consultable et téléchargeable</li>
-                  </ul>
-                  <div className="mt-7"><CheckoutButton token={token} /></div>
-                  <p className="mt-4 text-center text-xs leading-5 text-[#879a95]">Paiement sécurisé · Aucun abonnement · Aucun renouvellement automatique</p>
-                  <div className="mt-5 rounded-2xl bg-[#f5f8f7] px-4 py-3 text-xs font-semibold leading-5 text-[#647d77]">Si le document ne peut pas être exploité correctement, le dossier est signalé avant livraison.</div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Débloquer le rapport complet</p>
+                  <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Choisissez la formule qui vous convient.</h2>
+                  <p className="mt-3 text-sm leading-6 text-[#6c837d]">Aucune option n’est présélectionnée. L’abonnement reste entièrement facultatif.</p>
+                  <div className="mt-6"><PurchaseOptions token={token} creditBalance={billing.creditBalance} subscriptionActive={isSubscriptionActive(billing.subscription?.status)} /></div>
+                  <div className="mt-5 rounded-2xl bg-[#f5f8f7] px-4 py-3 text-xs font-semibold leading-5 text-[#647d77]">Le rapport payé reste vérifié humainement avant livraison.</div>
                 </>
               )}
             </div>
-
-            <div className="mt-5 rounded-2xl border border-[#dce7e2] bg-white/75 px-5 py-4 text-xs leading-5 text-[#718780]">
-              DevisVéto explique le document. Le service ne juge ni la nécessité des soins ni le caractère normal d’un tarif.
-            </div>
+            <div className="mt-5 rounded-2xl border border-[#dce7e2] bg-white/75 px-5 py-4 text-xs leading-5 text-[#718780]">DevisVéto explique le document. Le service ne juge ni la nécessité des soins ni le caractère normal d’un tarif.</div>
           </aside>
         </div>
       </div>

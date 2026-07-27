@@ -61,7 +61,7 @@ export async function loadPublicPreview(token: string) {
     supabase
       .from("cases")
       .select(
-        "id, user_id, document_type, status, detected_total_amount, currency, payment_status, created_at, pets(name, species), profiles(email)"
+        "id, user_id, pet_id, document_type, status, detected_total_amount, currency, payment_status, created_at, pets(id, name, species), profiles(email)"
       )
       .eq("id", caseId)
       .single(),

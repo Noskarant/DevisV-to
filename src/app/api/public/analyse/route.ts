@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { findOrCreateProfileByEmail } from "@/lib/public-preview/data";
 import { generatePreview } from "@/lib/public-preview/generate";
 import { sendPreviewReadyEmail } from "@/lib/email/send";
@@ -18,6 +19,7 @@ const ALLOWED_MIME = new Set([
 
 const inputSchema = z.object({
   email: z.string().trim().email("Adresse email invalide.").max(254),
+  pet_id: z.string().uuid().optional().or(z.literal("")).transform((value) => value || null),
   pet_name: z.string().trim().min(1, "Indiquez le prénom de votre animal.").max(80),
   species: z.enum(["chien", "chat", "autre"]),
   document_type: z.enum(["devis", "facture"]),
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
     const rawInput = Object.fromEntries(
       [
         "email",
+        "pet_id",
         "pet_name",
         "species",
         "document_type",
@@ -70,7 +73,10 @@ export async function POST(request: Request) {
     );
     const parsed = inputSchema.safeParse(rawInput);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Informations invalides." }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Informations invalides." },
+        { status: 400 }
+      );
     }
 
     const input = parsed.data;
@@ -90,17 +96,64 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: pet, error: petError } = await supabase
-      .from("pets")
-      .insert({
-        user_id: profile.id,
-        name: input.pet_name,
-        species: input.species,
-        sex: "inconnu",
-      })
+    let pet: { id: string; name: string; species: "chien" | "chat" | "autre" } | null = null;
+
+    if (input.pet_id) {
+      const sessionClient = await createClient();
+      const { data: { user } } = await sessionClient.auth.getUser();
+      if (!user || user.id !== profile.id) {
+        return NextResponse.json(
+          { error: "Reconnectez-vous pour ajouter ce document au dossier de cet animal." },
+          { status: 403 }
+        );
+      }
+
+      const { data: selectedPet } = await supabase
+        .from("pets")
+        .select("id, name, species")
+        .eq("id", input.pet_id)
+        .eq("user_id", profile.id)
+        .is("archived_at", null)
+        .maybeSingle();
+      if (!selectedPet) {
+        return NextResponse.json({ error: "Dossier animal introuvable." }, { status: 404 });
+      }
+      pet = selectedPet;
+    } else {
+      const { data: matchingPets } = await supabase
+        .from("pets")
+        .select("id, name, species")
+        .eq("user_id", profile.id)
+        .eq("species", input.species)
+        .ilike("name", input.pet_name)
+        .is("archived_at", null)
+        .limit(1);
+
+      pet = matchingPets?.[0] ?? null;
+      if (!pet) {
+        const { data: createdPet, error: petError } = await supabase
+          .from("pets")
+          .insert({
+            user_id: profile.id,
+            name: input.pet_name,
+            species: input.species,
+            sex: "inconnu",
+          })
+          .select("id, name, species")
+          .single();
+        if (petError || !createdPet) throw new Error(petError?.message ?? "Animal non créé.");
+        pet = createdPet;
+      }
+    }
+
+    const { data: previousCase } = await supabase
+      .from("cases")
       .select("id")
-      .single();
-    if (petError || !pet) throw new Error(petError?.message ?? "Animal non créé.");
+      .eq("user_id", profile.id)
+      .eq("pet_id", pet.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     const { data: caseRow, error: caseError } = await supabase
       .from("cases")
@@ -113,6 +166,7 @@ export async function POST(request: Request) {
         emergency_context: input.emergency_context,
         user_description: input.user_description || null,
         primary_question: input.primary_question || null,
+        comparison_case_id: previousCase?.id ?? null,
         currency: "EUR",
         consent_data_processing: true,
         consent_anonymized_statistics: input.consent_anonymized_statistics,
@@ -143,8 +197,8 @@ export async function POST(request: Request) {
       fileBuffer: buffer,
       mimeType: file.type,
       filename: file.name,
-      petName: input.pet_name,
-      species: input.species,
+      petName: pet.name,
+      species: pet.species,
       documentType: input.document_type,
       emergencyContext: input.emergency_context,
       userDescription: input.user_description,
@@ -177,10 +231,7 @@ export async function POST(request: Request) {
     });
     if (reportError) throw new Error(reportError.message);
 
-    await supabase
-      .from("case_documents")
-      .update({ extraction_status: "done" })
-      .eq("case_id", caseRow.id);
+    await supabase.from("case_documents").update({ extraction_status: "done" }).eq("case_id", caseRow.id);
     await supabase
       .from("cases")
       .update({
@@ -195,13 +246,13 @@ export async function POST(request: Request) {
       user_id: profile.id,
       case_id: caseRow.id,
       event_name: "public_preview_created",
-      metadata: { token, source: "public_funnel", filename: file.name },
+      metadata: { token, source: input.pet_id ? "pet_record" : "public_funnel", filename: file.name },
     });
     if (eventError) throw new Error(eventError.message);
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
     const previewUrl = `${appUrl}/apercu/${token}`;
-    await sendPreviewReadyEmail(profile.email, input.pet_name, previewUrl);
+    await sendPreviewReadyEmail(profile.email, pet.name, previewUrl);
 
     return NextResponse.json({ url: `/apercu/${token}` });
   } catch (error) {
