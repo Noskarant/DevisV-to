@@ -20,21 +20,66 @@ function ArrowIcon() {
   );
 }
 
+function translateAuthError(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("rate limit")) {
+    return "Trop de liens ont été demandés récemment. Patientez une minute avant de réessayer.";
+  }
+  if (normalized.includes("signup") && normalized.includes("disabled")) {
+    return "La création de compte est temporairement désactivée.";
+  }
+  if (normalized.includes("error sending") || normalized.includes("smtp")) {
+    return "Le serveur d’authentification n’a pas réussi à envoyer l’email. Vérifiez la configuration SMTP.";
+  }
+  if (normalized.includes("invalid api key") || normalized.includes("apikey")) {
+    return "La configuration Supabase du site est invalide. Rechargez la page après le nouveau déploiement.";
+  }
+  if (normalized.includes("failed to fetch") || normalized.includes("network")) {
+    return "Le site n’arrive pas à joindre le serveur de connexion. Vérifiez votre réseau puis réessayez.";
+  }
+
+  return `La connexion n’a pas pu être lancée : ${message}`;
+}
+
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setStatus(error ? "error" : "sent");
+    setErrorMessage("");
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) {
+        console.error("[DevisVeto auth] magic link refused", {
+          name: error.name,
+          message: error.message,
+          status: error.status,
+        });
+        setErrorMessage(translateAuthError(error.message));
+        setStatus("error");
+        return;
+      }
+
+      setStatus("sent");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      console.error("[DevisVeto auth] magic link failed", error);
+      setErrorMessage(translateAuthError(message));
+      setStatus("error");
+    }
   }
 
   if (status === "sent") {
@@ -48,6 +93,9 @@ export function LoginForm() {
             <p className="font-extrabold">Consultez votre boîte mail</p>
             <p className="mt-1 text-sm leading-6 text-[#4e756d]">
               Un lien de connexion a été envoyé à <strong className="font-bold text-[#245e53]">{email}</strong>. Il peut mettre quelques instants à arriver.
+            </p>
+            <p className="mt-2 text-xs leading-5 text-[#64867f]">
+              Première visite ? Votre compte DevisVéto vient d’être créé automatiquement.
             </p>
           </div>
         </div>
@@ -94,10 +142,13 @@ export function LoginForm() {
         )}
       </button>
       {status === "error" && (
-        <p className="mt-4 rounded-xl bg-[#fff6f2] px-4 py-3 text-sm font-medium text-[#93462f]">
-          L&apos;envoi n&apos;a pas abouti. Vérifiez l&apos;adresse saisie et réessayez.
+        <p className="mt-4 rounded-xl bg-[#fff6f2] px-4 py-3 text-sm font-medium leading-6 text-[#93462f]">
+          {errorMessage}
         </p>
       )}
+      <p className="mt-3 text-center text-xs leading-5 text-[#78908b]">
+        Aucune inscription séparée : si votre adresse est nouvelle, le compte est créé avec ce lien.
+      </p>
     </form>
   );
 }
