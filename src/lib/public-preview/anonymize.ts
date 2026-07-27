@@ -28,19 +28,7 @@ function replaceTracked(
   if (!state.redactedCategories.includes(category)) state.redactedCategories.push(category);
 }
 
-function looksLikeBillableService(line: string) {
-  const hasAmount = /(?:€|eur|chf|usd|gbp|\$|£)|\d{1,6}[,.]\d{2}/i.test(line);
-  const hasServiceWord = /(consult|anesth|chirurg|radio|échograph|analyse|bilan|médicament|injection|hospital|soin|examen|surveillance|vacc|castr|stéril|pansement|prélèvement|laboratoire)/i.test(line);
-  return hasAmount && hasServiceWord;
-}
-
-export function anonymizeDocumentText(text: string, petName?: string): AnonymizationResult {
-  const state: AnonymizationResult = {
-    text: text.replace(/\u0000/g, "").trim(),
-    redactionCount: 0,
-    redactedCategories: [],
-  };
-
+function applyDirectRedactions(state: AnonymizationResult, petName?: string) {
   if (petName?.trim()) {
     replaceTracked(
       state,
@@ -62,6 +50,31 @@ export function anonymizeDocumentText(text: string, petName?: string): Anonymiza
   replaceTracked(state, /\b(?:siret|siren)\s*[:#-]?\s*\d(?:[ .]?\d){8,13}\b/giu, "[IDENTIFIANT_ENTREPRISE]", "company_id");
   replaceTracked(state, /\b(?:n°|no|numéro)?\s*(?:devis|facture|client|dossier)\s*[:#-]?\s*[A-Z0-9/_-]{3,}\b/giu, "[RÉFÉRENCE]", "reference");
   replaceTracked(state, /\b(?:TVA|VAT)\s*(?:intracommunautaire)?\s*[:#-]?\s*[A-Z0-9 ]{6,}\b/giu, "[IDENTIFIANT_TVA]", "tax_id");
+}
+
+function createState(text: string): AnonymizationResult {
+  return {
+    text: text.replace(/\u0000/g, "").trim(),
+    redactionCount: 0,
+    redactedCategories: [],
+  };
+}
+
+function looksLikeBillableService(line: string) {
+  const hasAmount = /(?:€|eur|chf|usd|gbp|\$|£)|\d{1,6}[,.]\d{2}/i.test(line);
+  const hasServiceWord = /(consult|anesth|chirurg|radio|échograph|analyse|bilan|médicament|injection|hospital|soin|examen|surveillance|vacc|castr|stéril|pansement|prélèvement|laboratoire)/i.test(line);
+  return hasAmount && hasServiceWord;
+}
+
+export function anonymizeFreeText(text: string, petName?: string): AnonymizationResult {
+  const state = createState(text);
+  applyDirectRedactions(state, petName);
+  return state;
+}
+
+export function anonymizeDocumentText(text: string, petName?: string): AnonymizationResult {
+  const state = createState(text);
+  applyDirectRedactions(state, petName);
 
   const lines = state.text.split(/\r?\n/);
   const identityLine = /(?:clinique|cabinet|centre hospitalier|centre vétérinaire|docteur\b|\bdr\.?\s|raison sociale|adresse\b|téléphone\b|portable\b|courriel\b|e-mail\b|email\b|client\b|propriétaire\b|facturé à|coordonnées|identification du praticien)/i;
