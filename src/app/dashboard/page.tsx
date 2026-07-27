@@ -6,18 +6,18 @@ import { getBillingSummary, isSubscriptionActive } from "@/lib/billing/entitleme
 import { BillingPortalButton } from "./billing-portal-button";
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: "Brouillon",
+  draft: "À compléter",
   uploaded: "Document reçu",
   extraction_pending: "Lecture en cours",
   extracted: "Aperçu disponible",
-  payment_pending: "Paiement en attente",
+  payment_pending: "Choix de l’offre",
   paid: "Rapport en préparation",
-  review_pending: "Vérification humaine",
-  needs_information: "Informations demandées",
+  review_pending: "Relecture humaine",
+  needs_information: "Précision demandée",
   approved: "Rapport validé",
   delivered: "Rapport disponible",
   error: "À vérifier",
-  refunded: "Remboursé",
+  refunded: "Dossier clôturé",
 };
 
 function formatDate(value: string) {
@@ -61,6 +61,7 @@ export default async function DashboardPage() {
   ]);
 
   const subscriptionActive = isSubscriptionActive(billing.subscription?.status);
+  const hasPets = Boolean(pets?.length);
   const casesByPet = new Map<string, NonNullable<typeof cases>>();
   for (const item of cases ?? []) {
     if (!item.pet_id) continue;
@@ -77,7 +78,7 @@ export default async function DashboardPage() {
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0c5b50] text-lg font-black text-white">DV</span>
             <div>
               <p className="text-lg font-extrabold tracking-[-0.035em] text-[#123f38]">DevisVéto</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#78908a]">Espace animaux</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#78908a]">Votre espace</p>
             </div>
           </Link>
           <div className="flex items-center gap-3">
@@ -92,20 +93,29 @@ export default async function DashboardPage() {
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
           <div className="rounded-[30px] bg-[#123f38] px-6 py-8 text-white shadow-[0_24px_70px_rgba(18,63,56,0.18)] sm:px-9">
-            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#9fcfc1]">Votre espace familial</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#9fcfc1]">{hasPets ? "Votre suivi" : "Bienvenue dans votre espace"}</p>
             <h1 className="mt-3 max-w-3xl font-serif text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
-              Chaque animal a son dossier. Chaque document reste facile à retrouver.
+              {hasPets ? "Tout le suivi de vos animaux, au même endroit." : "Commencez par ajouter votre animal."}
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-[#c4d7d2]">
-              Devis, factures, informations déclarées, poids et rappels sont organisés dans une timeline dédiée à chacun de vos animaux.
+              {hasPets
+                ? "Retrouvez leurs documents, rapports, mesures et rappels dans une fiche claire pour chacun."
+                : "Sa fiche rassemblera ses documents, ses informations utiles, son poids et les dates que vous souhaitez retrouver."}
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/analyser" className="rounded-full bg-white px-5 py-3 text-sm font-extrabold text-[#123f38] hover:bg-[#eef5f2]">
-                Analyser un nouveau document
+              <Link href={hasPets ? "/analyser" : "/dashboard/animaux/nouveau"} className="rounded-full bg-white px-5 py-3 text-sm font-extrabold text-[#123f38] hover:bg-[#eef5f2]">
+                {hasPets ? "Analyser un nouveau document" : "Ajouter mon animal"}
               </Link>
-              <span className="rounded-full bg-white/10 px-5 py-3 text-sm font-bold text-[#d5e4e0]">
-                {pets?.length ?? 0} animal{(pets?.length ?? 0) > 1 ? "aux" : ""} · {cases?.length ?? 0} document{(cases?.length ?? 0) > 1 ? "s" : ""}
-              </span>
+              {!hasPets && (
+                <Link href="/analyser" className="rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-extrabold text-white hover:bg-white/15">
+                  Analyser un document sans attendre
+                </Link>
+              )}
+              {hasPets && (
+                <span className="rounded-full bg-white/10 px-5 py-3 text-sm font-bold text-[#d5e4e0]">
+                  {pets?.length ?? 0} animal{(pets?.length ?? 0) > 1 ? "aux" : ""} · {cases?.length ?? 0} document{(cases?.length ?? 0) > 1 ? "s" : ""}
+                </span>
+              )}
             </div>
           </div>
 
@@ -114,23 +124,23 @@ export default async function DashboardPage() {
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">DevisVéto Plus</p>
                 <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">
-                  {subscriptionActive ? "Abonnement actif" : "6,90 € par mois"}
+                  {subscriptionActive ? "Votre formule est active" : "1 analyse par mois · 6,90 €"}
                 </h2>
               </div>
               <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[#397268] shadow-sm">
-                {billing.creditBalance}/3 crédit{billing.creditBalance > 1 ? "s" : ""}
+                {billing.creditBalance}/3 crédits
               </span>
             </div>
 
             {subscriptionActive ? (
               <>
                 <p className="mt-4 text-sm leading-6 text-[#526f68]">
-                  Un crédit est ajouté à chaque renouvellement et se cumule jusqu’à trois. Vos animaux partagent la même réserve.
+                  Un crédit est ajouté à chaque renouvellement et se cumule jusqu’à trois. Tous vos animaux utilisent la même réserve.
                 </p>
                 {billing.subscription?.current_period_end && (
                   <p className="mt-3 text-xs font-bold text-[#78908a]">
                     Prochain renouvellement : {formatDate(billing.subscription.current_period_end)}
-                    {billing.subscription.cancel_at_period_end ? " · résiliation programmée" : ""}
+                    {billing.subscription.cancel_at_period_end ? " · arrêt programmé" : ""}
                   </p>
                 )}
                 <div className="mt-5"><BillingPortalButton /></div>
@@ -138,12 +148,12 @@ export default async function DashboardPage() {
             ) : (
               <>
                 <ul className="mt-4 space-y-2 text-sm font-semibold leading-6 text-[#526f68]">
-                  <li>✓ Cette analyse incluse à l’inscription</li>
+                  <li>✓ Le rapport en cours inclus</li>
                   <li>✓ 1 nouveau crédit chaque mois</li>
                   <li>✓ Crédits cumulables jusqu’à 3</li>
                   <li>✓ Tous les animaux du foyer</li>
                 </ul>
-                <p className="mt-5 text-xs leading-5 text-[#78908a]">L’abonnement est proposé après votre aperçu gratuit. Résiliable à tout moment.</p>
+                <p className="mt-5 text-xs leading-5 text-[#78908a]">Vous pourrez choisir cette formule depuis un aperçu. Résiliable à tout moment.</p>
               </>
             )}
           </div>
@@ -153,16 +163,16 @@ export default async function DashboardPage() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Mes animaux</p>
-              <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Leurs dossiers personnels</h2>
+              <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Leur suivi personnel</h2>
             </div>
-            <Link href="/dashboard/animaux/nouveau" className="text-sm font-extrabold text-[#0c5b50]">+ Créer un dossier</Link>
+            {hasPets && <Link href="/dashboard/animaux/nouveau" className="text-sm font-extrabold text-[#0c5b50]">+ Ajouter un animal</Link>}
           </div>
 
           {!pets?.length ? (
-            <div className="mt-6 rounded-[26px] border-2 border-dashed border-[#c9ddd6] bg-white/60 px-6 py-12 text-center">
-              <p className="font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Commencez par créer le dossier de votre animal.</p>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#6c837d]">Vous pourrez y centraliser ses informations, ses documents, ses mesures de poids et ses rappels.</p>
-              <Link href="/dashboard/animaux/nouveau" className="mt-6 inline-flex rounded-full bg-[#0c5b50] px-5 py-3 text-sm font-extrabold text-white">Ajouter mon premier animal</Link>
+            <div className="mt-6 rounded-[26px] border-2 border-dashed border-[#c9ddd6] bg-white/70 px-6 py-12 text-center">
+              <p className="font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Ajoutez votre premier animal.</p>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#6c837d]">Son nom et son espèce suffisent. Vous pourrez compléter sa fiche progressivement.</p>
+              <Link href="/dashboard/animaux/nouveau" className="mt-6 inline-flex rounded-full bg-[#0c5b50] px-5 py-3 text-sm font-extrabold text-white">Créer sa fiche</Link>
             </div>
           ) : (
             <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -212,7 +222,7 @@ export default async function DashboardPage() {
                   </Link>
                 );
               })}
-              {!cases?.length && <p className="text-sm text-[#78908a]">Aucun document analysé pour le moment.</p>}
+              {!cases?.length && <p className="text-sm text-[#78908a]">Vos prochaines analyses apparaîtront ici.</p>}
             </div>
           </section>
 
@@ -233,7 +243,7 @@ export default async function DashboardPage() {
                   </Link>
                 );
               })}
-              {!reminders?.length && <p className="text-sm text-[#78908a]">Aucun rappel programmé.</p>}
+              {!reminders?.length && <p className="text-sm text-[#78908a]">Les dates que vous ajoutez apparaîtront ici.</p>}
             </div>
           </section>
         </div>

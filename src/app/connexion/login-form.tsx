@@ -23,23 +23,26 @@ function ArrowIcon() {
 function translateAuthError(message: string) {
   const normalized = message.toLowerCase();
 
+  if (!message || message === "{}" || normalized.includes("unexpected_failure")) {
+    return "Le lien n’a pas pu être envoyé. Vérifiez l’adresse, puis réessayez dans quelques instants.";
+  }
   if (normalized.includes("rate limit")) {
-    return "Trop de liens ont été demandés récemment. Patientez une minute avant de réessayer.";
+    return "Un lien vient déjà d’être demandé. Patientez une minute avant de réessayer.";
   }
   if (normalized.includes("signup") && normalized.includes("disabled")) {
-    return "La création de compte est temporairement désactivée.";
+    return "La création de votre espace est temporairement indisponible.";
   }
   if (normalized.includes("error sending") || normalized.includes("smtp")) {
-    return "Le serveur d’authentification n’a pas réussi à envoyer l’email. Vérifiez la configuration SMTP.";
+    return "L’email n’a pas pu être envoyé pour le moment. Réessayez dans quelques instants.";
   }
   if (normalized.includes("invalid api key") || normalized.includes("apikey")) {
-    return "La configuration Supabase du site est invalide. Rechargez la page après le nouveau déploiement.";
+    return "Le service de connexion est momentanément indisponible. Rechargez la page, puis réessayez.";
   }
   if (normalized.includes("failed to fetch") || normalized.includes("network")) {
-    return "Le site n’arrive pas à joindre le serveur de connexion. Vérifiez votre réseau puis réessayez.";
+    return "Le site n’arrive pas à joindre le service de connexion. Vérifiez votre réseau, puis réessayez.";
   }
 
-  return `La connexion n’a pas pu être lancée : ${message}`;
+  return "Le lien n’a pas pu être envoyé. Vérifiez l’adresse, puis réessayez dans quelques instants.";
 }
 
 export function LoginForm() {
@@ -75,7 +78,7 @@ export function LoginForm() {
 
       setStatus("sent");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      const message = error instanceof Error ? error.message : "";
       console.error("[DevisVeto auth] magic link failed", error);
       setErrorMessage(translateAuthError(message));
       setStatus("error");
@@ -90,12 +93,12 @@ export function LoginForm() {
             <MailIcon />
           </span>
           <div>
-            <p className="font-extrabold">Consultez votre boîte mail</p>
+            <p className="font-extrabold">Votre lien est en route.</p>
             <p className="mt-1 text-sm leading-6 text-[#4e756d]">
-              Un lien de connexion a été envoyé à <strong className="font-bold text-[#245e53]">{email}</strong>. Il peut mettre quelques instants à arriver.
+              Consultez la boîte mail de <strong className="font-bold text-[#245e53]">{email}</strong>, puis cliquez sur le lien pour accéder à votre espace.
             </p>
             <p className="mt-2 text-xs leading-5 text-[#64867f]">
-              Première visite ? Votre compte DevisVéto vient d’être créé automatiquement.
+              Pensez aux courriers indésirables. Le message peut prendre quelques instants à arriver.
             </p>
           </div>
         </div>
@@ -106,7 +109,7 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="mt-8">
       <label htmlFor="email" className="text-sm font-extrabold text-[#244941]">
-        Adresse email
+        Votre adresse email
       </label>
       <div className="relative mt-2">
         <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[#78908b]">
@@ -132,11 +135,11 @@ export function LoginForm() {
         {status === "sending" ? (
           <>
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-            Envoi du lien…
+            Envoi du lien sécurisé…
           </>
         ) : (
           <>
-            Recevoir mon lien de connexion
+            M’envoyer le lien sécurisé
             <ArrowIcon />
           </>
         )}
@@ -147,7 +150,7 @@ export function LoginForm() {
         </p>
       )}
       <p className="mt-3 text-center text-xs leading-5 text-[#78908b]">
-        Aucune inscription séparée : si votre adresse est nouvelle, le compte est créé avec ce lien.
+        Première visite ? Votre espace est créé automatiquement. Aucun mot de passe à choisir.
       </p>
     </form>
   );
