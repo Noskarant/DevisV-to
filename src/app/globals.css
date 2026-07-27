@@ -48,6 +48,10 @@ body {
   letter-spacing: 0.08em;
 }
 
+span[class="h-2 w-2 rounded-full bg-[#4f9b85]"] {
+  display: none;
+}
+
 button,
 a,
 input,
