@@ -65,11 +65,11 @@ export default async function AnalyserPage({
           <Link href="/" className="flex items-center gap-3">
             <BrandMark />
             <div>
-              <p className="text-lg font-extrabold tracking-[-0.035em] text-[#123f38]">DevisVéto</p>
-              <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#6a857f]">Votre devis, en clair</p>
+              <p className="text-lg font-semibold tracking-[-0.02em] text-[#123f38]">DevisVéto</p>
+              <p className="mt-0.5 text-[9px] font-semibold uppercase text-[#6a857f]">Votre devis, en clair</p>
             </div>
           </Link>
-          <Link href="/dashboard" className="text-sm font-bold text-[#45665f] hover:text-[#0c5b50]">Mon espace</Link>
+          <Link href="/dashboard" className="text-sm font-semibold text-[#45665f] hover:text-[#0c5b50]">Mon espace</Link>
         </div>
       </header>
 
@@ -79,20 +79,20 @@ export default async function AnalyserPage({
 
         <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <aside className="pt-3 lg:sticky lg:top-10 lg:pt-8">
-            <div className="inline-flex rounded-full bg-[#e4f1ec] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.13em] text-[#397268]">Première lecture offerte</div>
-            <h1 className="mt-5 max-w-xl font-serif text-4xl font-semibold leading-[1.08] tracking-[-0.045em] text-[#123f38] sm:text-5xl lg:text-[58px]">
-              Envoyez le document. Obtenez une première lecture claire.
+            <div className="inline-flex rounded-full bg-[#e4f1ec] px-3 py-1.5 text-xs font-semibold uppercase text-[#397268]">Première explication gratuite</div>
+            <h1 className="mt-5 max-w-xl font-serif text-4xl leading-[1.1] text-[#123f38] sm:text-5xl lg:text-[56px]">
+              Ajoutez votre document : nous vous aidons à comprendre ce qu’il contient.
             </h1>
             <p className="mt-5 max-w-lg text-base leading-8 text-[#647d77]">
-              DevisVéto repère les prestations, explique plusieurs lignes et prépare les premières questions utiles à poser à la clinique.
+              Vous verrez plusieurs lignes expliquées et des questions à poser à la clinique. Rien n’est interprété médicalement.
             </p>
 
             <div className="mt-8 space-y-4">
               {[
-                "Deux explications et deux questions personnalisées",
-                "Aucun diagnostic ni avis sur la nécessité des soins",
-                "Rapport complet relu par une personne",
-                "Une fiche de suivi pour chaque animal",
+                "Deux lignes expliquées dès l’aperçu",
+                "Aucun diagnostic ni avis sur les soins",
+                "Le rapport complet est relu par une personne",
+                "Les documents peuvent être classés par animal",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3 text-sm font-semibold text-[#365f57]">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#0c5b50] shadow-sm"><CheckIcon /></span>
@@ -102,8 +102,8 @@ export default async function AnalyserPage({
             </div>
 
             <div className="mt-9 rounded-2xl border border-[#d8e7e1] bg-white/75 p-5 text-sm leading-6 text-[#647d77]">
-              <p className="font-bold text-[#123f38]">Un outil d’explication, pas un avis vétérinaire.</p>
-              <p className="mt-1.5">En cas d’urgence ou de dégradation de l’état de votre animal, contactez directement une clinique.</p>
+              <p className="font-semibold text-[#123f38]">DevisVéto ne remplace pas votre vétérinaire.</p>
+              <p className="mt-1.5">Si l’état de votre animal vous inquiète, contactez directement une clinique.</p>
             </div>
           </aside>
 
