@@ -27,6 +27,10 @@ alter table payments
   add column if not exists stripe_subscription_id text,
   add column if not exists stripe_invoice_id text;
 
+create unique index if not exists payments_stripe_invoice_unique
+  on payments(stripe_invoice_id)
+  where stripe_invoice_id is not null;
+
 create table if not exists subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles(id) on delete cascade,
@@ -221,3 +225,6 @@ create policy "pet_weight_entries_all_own_or_admin" on pet_weight_entries
 revoke all on function get_analysis_credit_balance(uuid) from public, anon, authenticated;
 revoke all on function grant_monthly_analysis_credit(uuid, uuid, text) from public, anon, authenticated;
 revoke all on function consume_analysis_credit(uuid, uuid) from public, anon, authenticated;
+grant execute on function get_analysis_credit_balance(uuid) to service_role;
+grant execute on function grant_monthly_analysis_credit(uuid, uuid, text) to service_role;
+grant execute on function consume_analysis_credit(uuid, uuid) to service_role;
