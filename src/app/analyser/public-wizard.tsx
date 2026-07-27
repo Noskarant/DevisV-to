@@ -6,6 +6,13 @@ import { useRouter } from "next/navigation";
 type Species = "chien" | "chat" | "autre";
 type DocumentType = "devis" | "facture";
 
+type InitialPet = {
+  id: string;
+  name: string;
+  species: Species;
+  email?: string | null;
+};
+
 const steps = ["Le document", "Votre animal", "Vos coordonnées"];
 const processingLabels = [
   "Lecture du document",
@@ -29,18 +36,18 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
-export function PublicWizard() {
+export function PublicWizard({ initialPet = null }: { initialPet?: InitialPet | null }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(0);
   const [file, setFile] = useState<File | null>(null);
-  const [petName, setPetName] = useState("");
-  const [species, setSpecies] = useState<Species>("chien");
+  const [petName, setPetName] = useState(initialPet?.name ?? "");
+  const [species, setSpecies] = useState<Species>(initialPet?.species ?? "chien");
   const [documentType, setDocumentType] = useState<DocumentType>("devis");
   const [emergency, setEmergency] = useState(false);
   const [description, setDescription] = useState("");
   const [question, setQuestion] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialPet?.email ?? "");
   const [consent, setConsent] = useState(false);
   const [statisticsConsent, setStatisticsConsent] = useState(false);
   const [contentConsent, setContentConsent] = useState(false);
@@ -102,10 +109,12 @@ export function PublicWizard() {
       formData.append("consent_data_processing", String(consent));
       formData.append("consent_anonymized_statistics", String(statisticsConsent));
       formData.append("consent_anonymized_content", String(contentConsent));
+      if (initialPet?.id) formData.append("pet_id", initialPet.id);
 
       const response = await fetch("/api/public/analyse", { method: "POST", body: formData });
       const payload = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "L’aperçu n’a pas pu être préparé.");
+      window.clearInterval(timer);
       router.push(payload.url);
     } catch (caught) {
       window.clearInterval(timer);
@@ -138,8 +147,8 @@ export function PublicWizard() {
                 active
                   ? "border-[#9bcabc] bg-[#edf7f3] text-[#174f46]"
                   : completed
-                  ? "border-[#e1ece8] bg-white text-[#4e7169]"
-                  : "border-transparent bg-[#f6f8f7] text-[#9aaba7]"
+                    ? "border-[#e1ece8] bg-white text-[#4e7169]"
+                    : "border-transparent bg-[#f6f8f7] text-[#9aaba7]"
               }`}>
                 <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
                   completed ? "bg-[#0c5b50] text-white" : active ? "bg-white text-[#0c5b50]" : "bg-[#e7ecea]"
@@ -157,6 +166,16 @@ export function PublicWizard() {
 
   return (
     <div>
+      {initialPet && (
+        <div className="mb-7 flex items-center justify-between gap-4 rounded-2xl border border-[#bcd8ce] bg-[#edf7f3] px-4 py-3.5">
+          <div>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.13em] text-[#5d8179]">Document rattaché au dossier</p>
+            <p className="mt-1 text-sm font-extrabold text-[#174f46]">{initialPet.name}</p>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[#397268]">Suivi activé</span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-3">
         {steps.map((label, index) => (
           <div key={label} className="flex flex-1 items-center gap-2">
@@ -177,18 +196,10 @@ export function PublicWizard() {
         {step === 0 && (
           <section>
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Étape 1 sur 3</p>
-            <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38] sm:text-4xl">
-              Ajoutez votre document.
-            </h2>
+            <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38] sm:text-4xl">Ajoutez votre document.</h2>
             <p className="mt-3 text-sm leading-6 text-[#6c837d]">Une photo nette ou le PDF transmis par la clinique suffit.</p>
 
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/jpeg,image/png,image/heic"
-              className="hidden"
-              onChange={(event) => selectFile(event.target.files?.[0])}
-            />
+            <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/jpeg,image/png,image/heic" className="hidden" onChange={(event) => selectFile(event.target.files?.[0])} />
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
@@ -225,30 +236,30 @@ export function PublicWizard() {
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
               <label className="sm:col-span-2">
                 <span className="text-sm font-bold text-[#315f57]">Prénom de l’animal</span>
-                <input value={petName} onChange={(e) => setPetName(e.target.value)} placeholder="Ex. Nala" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none transition focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]" />
+                <input value={petName} onChange={(event) => setPetName(event.target.value)} readOnly={Boolean(initialPet)} placeholder="Ex. Nala" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none transition focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea] read-only:bg-[#f2f6f4]" />
               </label>
               <label>
                 <span className="text-sm font-bold text-[#315f57]">Animal</span>
-                <select value={species} onChange={(e) => setSpecies(e.target.value as Species)} className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]">
+                <select value={species} onChange={(event) => setSpecies(event.target.value as Species)} disabled={Boolean(initialPet)} className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea] disabled:bg-[#f2f6f4]">
                   <option value="chien">Chien</option><option value="chat">Chat</option><option value="autre">Autre</option>
                 </select>
               </label>
               <label>
                 <span className="text-sm font-bold text-[#315f57]">Type de document</span>
-                <select value={documentType} onChange={(e) => setDocumentType(e.target.value as DocumentType)} className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]">
+                <select value={documentType} onChange={(event) => setDocumentType(event.target.value as DocumentType)} className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]">
                   <option value="devis">Devis</option><option value="facture">Facture</option>
                 </select>
               </label>
               <label className="sm:col-span-2">
                 <span className="text-sm font-bold text-[#315f57]">Ce que le vétérinaire vous a expliqué <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Ex. intervention prévue la semaine prochaine, avec anesthésie et surveillance…" className="mt-2 w-full resize-none rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]" />
+                <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="Ex. intervention prévue la semaine prochaine, avec anesthésie et surveillance…" className="mt-2 w-full resize-none rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]" />
               </label>
               <label className="sm:col-span-2">
                 <span className="text-sm font-bold text-[#315f57]">Votre question principale <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
-                <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ex. qu’est-ce qui est inclus dans l’anesthésie ?" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]" />
+                <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ex. qu’est-ce qui est inclus dans l’anesthésie ?" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]" />
               </label>
               <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl bg-[#fff8f4] px-4 py-3.5 text-sm text-[#715247]">
-                <input type="checkbox" checked={emergency} onChange={(e) => setEmergency(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#c9684f]" />
+                <input type="checkbox" checked={emergency} onChange={(event) => setEmergency(event.target.checked)} className="mt-0.5 h-4 w-4 accent-[#c9684f]" />
                 <span><strong>Il s’agit d’une urgence.</strong> Cette information ajoute un rappel prioritaire de ne pas retarder les soins.</span>
               </label>
             </div>
@@ -259,24 +270,24 @@ export function PublicWizard() {
           <section>
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Étape 3 sur 3</p>
             <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38] sm:text-4xl">Où envoyer votre lien privé ?</h2>
-            <p className="mt-3 text-sm leading-6 text-[#6c837d]">L’aperçu s’affiche immédiatement et vous recevez aussi son lien par email. Aucun mot de passe n’est demandé.</p>
+            <p className="mt-3 text-sm leading-6 text-[#6c837d]">L’aperçu s’affiche immédiatement et vous recevez aussi son lien par email.</p>
 
             <label className="mt-7 block">
               <span className="text-sm font-bold text-[#315f57]">Adresse email</span>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.fr" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]" />
+              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} readOnly={Boolean(initialPet?.email)} placeholder="vous@exemple.fr" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea] read-only:bg-[#f2f6f4]" />
             </label>
 
             <div className="mt-5 space-y-3 text-sm leading-6 text-[#5d7771]">
               <label className="flex items-start gap-3 rounded-2xl border border-[#dce7e2] px-4 py-3.5">
-                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 h-4 w-4 accent-[#0c5b50]" />
+                <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-1 h-4 w-4 accent-[#0c5b50]" />
                 <span>J’accepte le traitement du document afin de produire mon aperçu et mon rapport <strong>(obligatoire)</strong>.</span>
               </label>
               <label className="flex items-start gap-3 px-4 py-1">
-                <input type="checkbox" checked={statisticsConsent} onChange={(e) => setStatisticsConsent(e.target.checked)} className="mt-1 h-4 w-4 accent-[#0c5b50]" />
+                <input type="checkbox" checked={statisticsConsent} onChange={(event) => setStatisticsConsent(event.target.checked)} className="mt-1 h-4 w-4 accent-[#0c5b50]" />
                 <span>J’accepte l’utilisation anonymisée des informations pour améliorer le service <strong>(facultatif)</strong>.</span>
               </label>
               <label className="flex items-start gap-3 px-4 py-1">
-                <input type="checkbox" checked={contentConsent} onChange={(e) => setContentConsent(e.target.checked)} className="mt-1 h-4 w-4 accent-[#0c5b50]" />
+                <input type="checkbox" checked={contentConsent} onChange={(event) => setContentConsent(event.target.checked)} className="mt-1 h-4 w-4 accent-[#0c5b50]" />
                 <span>J’accepte l’utilisation anonymisée de ce cas dans du contenu pédagogique <strong>(facultatif)</strong>.</span>
               </label>
             </div>
@@ -288,15 +299,13 @@ export function PublicWizard() {
 
       <div className="mt-8 flex items-center gap-3">
         {step > 0 && (
-          <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="rounded-full border border-[#cddbd6] px-5 py-3 text-sm font-bold text-[#45665f] hover:bg-[#f1f6f4]">
-            Retour
-          </button>
+          <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="rounded-full border border-[#cddbd6] px-5 py-3 text-sm font-bold text-[#45665f] hover:bg-[#f1f6f4]">Retour</button>
         )}
         <button type="button" onClick={step === 2 ? submit : nextStep} className="flex-1 rounded-full bg-[#0c5b50] px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
           {step === 2 ? "Créer mon aperçu gratuit" : "Continuer"}
         </button>
       </div>
-      <p className="mt-4 text-center text-xs leading-5 text-[#879a95]">Aperçu gratuit · Rapport complet à 6,90 € · Aucun abonnement</p>
+      <p className="mt-4 text-center text-xs leading-5 text-[#879a95]">Aperçu gratuit · Analyse unique 8,90 € · ou DevisVéto Plus 6,90 €/mois</p>
     </div>
   );
 }
