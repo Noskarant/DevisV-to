@@ -41,9 +41,7 @@ export function formatMoney(amount: number | null, currency = "EUR") {
 }
 
 export function getPreviewPet(data: PublicPreviewData): ReportPet | null {
-  return firstRelation(
-    data.caseRow.pets as ReportPet | ReportPet[] | null
-  );
+  return firstRelation(data.caseRow.pets as ReportPet | ReportPet[] | null);
 }
 
 export function isPreviewPaid(data: PublicPreviewData) {
@@ -131,8 +129,8 @@ function representativeScore(line: PreviewLine) {
   return complexity + (line.clarification ? 35 : 0) + Math.min(line.explanation.length / 12, 25);
 }
 
-export function selectRepresentativeLine(lines: PreviewLine[]) {
-  return [...lines].sort((a, b) => representativeScore(b) - representativeScore(a))[0] ?? lines[0];
+export function selectRepresentativeLine(lines: PreviewLine[]): PreviewLine {
+  return [...lines].sort((a, b) => representativeScore(b) - representativeScore(a))[0] ?? lines[0]!;
 }
 
 function buildCategoryTotals(preview: PreviewPayload): CategoryTotal[] {
@@ -164,7 +162,7 @@ export function buildReportViewModel(data: PublicPreviewData): ReportViewModel {
   const clearlyIndicated = unique([
     `${preview.lines.length} prestation${preview.lines.length > 1 ? "s" : ""} identifiée${preview.lines.length > 1 ? "s" : ""} dans le document.`,
     preview.total_amount !== null ? `Montant total indiqué : ${amountLabel}.` : null,
-    highestLine?.amount !== null && highestLine
+    highestLine && highestLine.amount !== null
       ? `Montant le plus élevé indiqué : ${highestLine.original_label} — ${formatMoney(highestLine.amount, preview.currency)}.`
       : null,
     preview.categories.length
