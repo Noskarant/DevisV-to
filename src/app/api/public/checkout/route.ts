@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCaseIdByPublicToken } from "@/lib/public-preview/data";
 import { getStripe, PRODUCT_PRICES } from "@/lib/stripe/server";
 
+const checkoutSchema = z.object({
+  token: z.string().trim().min(1),
+  plan: z.enum(["single", "monthly", "credit"]).default("single"),
+});
+
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { token?: string };
-    const token = body.token?.trim();
-    if (!token) return NextResponse.json({ error: "APERÇU_INTROUVABLE" }, { status: 400 });
+    const parsed = checkoutSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Choix de paiement invalide." }, { status: 400 });
+    }
 
+    const { token, plan } = parsed.data;
     const caseId = await resolveCaseIdByPublicToken(token);
     if (!caseId) return NextResponse.json({ error: "APERÇU_INTROUVABLE" }, { status: 404 });
 
@@ -25,6 +33,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: `${appUrl}/apercu/${token}?payment=already-paid` });
     }
 
+    if (plan === "credit") {
+      const { data: consumed, error } = await supabase.rpc("consume_analysis_credit", {
+        p_user_id: caseRow.user_id,
+        p_case_id: caseId,
+      });
+      if (error || !consumed) {
+        return NextResponse.json(
+          { error: "Aucun crédit disponible pour cette analyse." },
+          { status: 409 }
+        );
+      }
+
+      await supabase.from("analytics_events").insert({
+        user_id: caseRow.user_id,
+        case_id: caseId,
+        event_name: "subscription_credit_used",
+        metadata: { source: "public_preview" },
+      });
+
+      return NextResponse.json({ url: `${appUrl}/apercu/${token}?payment=credit` });
+    }
+
     const stripe = getStripe();
     const localMockEnabled = process.env.NODE_ENV !== "production" && process.env.MOCK_MODE === "true";
     if (!stripe && !localMockEnabled) {
@@ -35,19 +65,30 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("id", caseRow.user_id)
-      .single();
+    const [{ data: profile }, { data: liveSubscriptions }] = await Promise.all([
+      supabase.from("profiles").select("email").eq("id", caseRow.user_id).single(),
+      supabase
+        .from("subscriptions")
+        .select("id, status")
+        .eq("user_id", caseRow.user_id)
+        .in("status", ["incomplete", "trialing", "active", "past_due"])
+        .limit(1),
+    ]);
 
-    const priceInfo = PRODUCT_PRICES.single;
+    if (plan === "monthly" && liveSubscriptions?.length) {
+      return NextResponse.json(
+        { error: "Un abonnement DevisVéto Plus est déjà rattaché à ce compte." },
+        { status: 409 }
+      );
+    }
+
+    const priceInfo = PRODUCT_PRICES[plan];
     const { data: payment, error: paymentError } = await supabase
       .from("payments")
       .insert({
         user_id: caseRow.user_id,
         case_id: caseId,
-        product_type: "single",
+        product_type: plan,
         amount: priceInfo.amount,
         currency: "eur",
         status: "pending",
@@ -58,13 +99,13 @@ export async function POST(request: Request) {
 
     await supabase
       .from("cases")
-      .update({ status: "payment_pending", product_type: "single" })
+      .update({ status: "payment_pending", product_type: plan })
       .eq("id", caseId);
     await supabase.from("analytics_events").insert({
       user_id: caseRow.user_id,
       case_id: caseId,
       event_name: "checkout_started",
-      metadata: { source: "public_preview" },
+      metadata: { source: "public_preview", plan },
     });
 
     if (!stripe) {
@@ -74,15 +115,34 @@ export async function POST(request: Request) {
         .eq("id", payment.id);
       await supabase
         .from("cases")
-        .update({ status: "paid", payment_status: "succeeded" })
+        .update({
+          status: "paid",
+          payment_status: "succeeded",
+          entitlement_source: plan === "monthly" ? "subscription_checkout" : "single_payment",
+          access_granted_at: new Date().toISOString(),
+        })
         .eq("id", caseId);
+
+      if (plan === "monthly") {
+        await supabase.from("subscriptions").insert({
+          user_id: caseRow.user_id,
+          stripe_subscription_id: `mock_sub_${payment.id}`,
+          stripe_customer_id: `mock_customer_${caseRow.user_id}`,
+          status: "active",
+          current_period_start: new Date().toISOString(),
+          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+      }
+
       return NextResponse.json({ url: `${appUrl}/apercu/${token}?payment=success&mock=true`, mock: true });
     }
 
     const priceId = process.env[priceInfo.envKey];
+    const monthly = plan === "monthly";
     const session = await stripe.checkout.sessions.create({
-      mode: "payment",
+      mode: monthly ? "subscription" : "payment",
       customer_email: profile?.email || undefined,
+      allow_promotion_codes: false,
       line_items: priceId
         ? [{ price: priceId, quantity: 1 }]
         : [
@@ -90,10 +150,13 @@ export async function POST(request: Request) {
               price_data: {
                 currency: "eur",
                 product_data: {
-                  name: "Rapport complet DevisVéto",
-                  description: "Toutes les lignes expliquées, points à clarifier et questions personnalisées.",
+                  name: priceInfo.label,
+                  description: monthly
+                    ? "Cette analyse incluse, puis 1 crédit d’analyse par mois, cumulable jusqu’à 3."
+                    : "Toutes les lignes expliquées, les points à clarifier et les questions personnalisées.",
                 },
                 unit_amount: priceInfo.amount,
+                ...(monthly ? { recurring: { interval: "month" as const } } : {}),
               },
               quantity: 1,
             },
@@ -102,10 +165,23 @@ export async function POST(request: Request) {
       cancel_url: `${appUrl}/apercu/${token}?payment=cancelled`,
       metadata: {
         case_id: caseId,
+        user_id: caseRow.user_id,
         payment_id: payment.id,
-        product_type: "single",
+        product_type: plan,
         public_token: token,
       },
+      ...(monthly
+        ? {
+            subscription_data: {
+              metadata: {
+                case_id: caseId,
+                user_id: caseRow.user_id,
+                payment_id: payment.id,
+                public_token: token,
+              },
+            },
+          }
+        : {}),
     });
 
     await supabase
