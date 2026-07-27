@@ -34,7 +34,7 @@ export default async function ConnexionPage({
       <div className="pointer-events-none absolute bottom-[-15%] right-[-8%] h-[420px] w-[420px] rounded-full bg-[#f6d0c3]/45 blur-3xl" />
 
       <section className="relative mx-auto flex w-full max-w-7xl overflow-hidden rounded-[30px] border border-white/80 bg-white shadow-[0_30px_90px_rgba(31,78,67,0.13)]">
-        <div className="relative hidden w-[48%] overflow-hidden bg-[#123f38] p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
+        <div className="relative hidden w-[46%] overflow-hidden bg-[#123f38] p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
           <div className="pointer-events-none absolute -right-28 top-24 h-72 w-72 rounded-full border border-white/10" />
           <div className="pointer-events-none absolute -right-12 top-40 h-48 w-48 rounded-full border border-white/10" />
           <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-[#ef8e72]/20 blur-2xl" />
@@ -47,20 +47,20 @@ export default async function ConnexionPage({
             </div>
           </Link>
 
-          <div className="relative my-16 max-w-lg">
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#f1a48d]">Votre espace personnel</p>
-            <h1 className="mt-5 font-serif text-5xl font-semibold leading-[1.06] tracking-[-0.04em] xl:text-6xl">
-              Vos dossiers et vos rapports, toujours accessibles.
+          <div className="relative my-14 max-w-lg">
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#f1a48d]">Votre espace DevisVéto</p>
+            <h1 className="mt-5 font-serif text-5xl font-semibold leading-[1.06] tracking-[-0.04em] xl:text-[56px]">
+              Tout le suivi de vos animaux, au même endroit.
             </h1>
             <p className="mt-6 max-w-md text-base leading-8 text-[#bfd2cd]">
-              Retrouvez l&apos;historique de vos animaux, suivez l&apos;avancement d&apos;une analyse et consultez vos explications en toute confidentialité.
+              Retrouvez les analyses, les documents et les informations utiles de chaque animal dans un espace clair et privé.
             </p>
 
             <div className="mt-9 space-y-4">
               {[
-                "Connexion sécurisée sans mot de passe",
-                "Documents conservés dans un espace privé",
-                "Suppression possible à tout moment",
+                "Une fiche claire pour chaque animal",
+                "Vos documents restent privés",
+                "Vous gardez le contrôle de vos données",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3 text-sm font-semibold text-[#e3eeeb]">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-[#9dd5c6]">
@@ -73,7 +73,7 @@ export default async function ConnexionPage({
           </div>
 
           <p className="relative max-w-md text-xs leading-5 text-[#8eb0a8]">
-            DevisVéto explique les documents vétérinaires. Le service ne fournit aucun diagnostic et ne remplace pas l&apos;avis de votre vétérinaire.
+            DevisVéto explique les documents vétérinaires. Il ne pose aucun diagnostic et ne remplace pas l&apos;avis de votre vétérinaire.
           </p>
         </div>
 
@@ -93,15 +93,15 @@ export default async function ConnexionPage({
               Accès sécurisé
             </div>
             <h2 className="mt-5 font-serif text-4xl font-semibold tracking-[-0.04em] text-[#123f38] sm:text-5xl">
-              Connectez-vous à votre espace.
+              Votre espace DevisVéto, en un clic.
             </h2>
             <p className="mt-4 text-base leading-7 text-[#647d77]">
-              Saisissez votre adresse email. Nous vous envoyons un lien personnel, sans mot de passe à retenir.
+              Entrez votre adresse email. Nous vous envoyons un lien sécurisé pour retrouver vos informations, sans mot de passe.
             </p>
 
             {error && (
               <div className="mt-6 rounded-2xl border border-[#f0c9bc] bg-[#fff6f2] px-4 py-3 text-sm font-medium text-[#93462f]">
-                Le lien de connexion n&apos;est plus valide. Demandez-en un nouveau ci-dessous.
+                Ce lien n&apos;est plus valide. Demandez-en un nouveau pour accéder à votre espace.
               </div>
             )}
 
