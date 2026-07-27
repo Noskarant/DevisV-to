@@ -25,6 +25,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: `${appUrl}/apercu/${token}?payment=already-paid` });
     }
 
+    const stripe = getStripe();
+    const localMockEnabled = process.env.NODE_ENV !== "production" && process.env.MOCK_MODE === "true";
+    if (!stripe && !localMockEnabled) {
+      console.error("[PUBLIC_CHECKOUT] STRIPE_SECRET_KEY manquante");
+      return NextResponse.json(
+        { error: "Le paiement sécurisé est temporairement indisponible." },
+        { status: 503 }
+      );
+    }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("email")
@@ -57,7 +67,6 @@ export async function POST(request: Request) {
       metadata: { source: "public_preview" },
     });
 
-    const stripe = getStripe();
     if (!stripe) {
       await supabase
         .from("payments")
