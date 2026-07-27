@@ -109,7 +109,7 @@ export default function HomePage() {
         <div className="relative mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#c9dfd7] bg-white/80 px-3 py-1.5 text-xs font-semibold uppercase text-[#397268] shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-[#4f9b85]" /> Première lecture gratuite
+              <span className="h-2 w-2 rounded-full bg-[#4f9b85]" /> Voyez déjà ce que contient votre devis
             </div>
             <h1 className="mt-6 max-w-3xl font-serif text-5xl leading-[1.04] text-[#123f38] sm:text-6xl lg:text-[66px]">
               On vous explique votre document vétérinaire, ligne par ligne.
