@@ -65,13 +65,9 @@ function toWinAnsiHex(value: string) {
   const bytes: number[] = [];
   for (const character of value.normalize("NFC")) {
     const code = character.codePointAt(0) ?? 63;
-    if (code <= 255) {
-      bytes.push(code);
-    } else if (WIN_ANSI[code] !== undefined) {
-      bytes.push(WIN_ANSI[code]);
-    } else {
-      bytes.push(63);
-    }
+    if (code <= 255) bytes.push(code);
+    else if (WIN_ANSI[code] !== undefined) bytes.push(WIN_ANSI[code]);
+    else bytes.push(63);
   }
   return bytes.map((byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
@@ -94,33 +90,28 @@ function approximateTextWidth(text: string, size: number, font: Font) {
 }
 
 function wrapText(text: string, width: number, size: number, font: Font) {
-  const paragraphs = text.replace(/\r/g, "").split("\n");
   const lines: string[] = [];
-
-  for (const paragraph of paragraphs) {
+  for (const paragraph of text.replace(/\r/g, "").split("\n")) {
     const words = paragraph.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0) {
+    if (!words.length) {
       lines.push("");
       continue;
     }
-
     let current = "";
     for (const word of words) {
       const candidate = current ? `${current} ${word}` : word;
-      if (approximateTextWidth(candidate, size, font) <= width || !current) {
-        current = candidate;
-      } else {
+      if (!current || approximateTextWidth(candidate, size, font) <= width) current = candidate;
+      else {
         lines.push(current);
         current = word;
       }
     }
     if (current) lines.push(current);
   }
-
   return lines;
 }
 
-class PdfCanvas {
+class PdfWriter {
   private pages: string[][] = [];
   private commands: string[] = [];
   private y = PAGE_HEIGHT - MARGIN;
@@ -136,20 +127,22 @@ class PdfCanvas {
 
   private finishPage() {
     const pageNumber = this.pages.length + 1;
-    this.commands.push(
-      `BT /F1 8 Tf ${colorCommand(COLORS.muted)} rg 1 0 0 1 ${MARGIN} 28 Tm <${toWinAnsiHex("DevisVéto — document explicatif, sans avis vétérinaire")}> Tj ET`,
-      `BT /F1 8 Tf ${colorCommand(COLORS.muted)} rg 1 0 0 1 ${PAGE_WIDTH - MARGIN - 18} 28 Tm <${toWinAnsiHex(String(pageNumber))}> Tj ET`
-    );
+    this.textAt("DevisVéto — document explicatif, sans avis vétérinaire", MARGIN, 28, 8, "regular", COLORS.muted);
+    this.textAt(String(pageNumber), PAGE_WIDTH - MARGIN - 12, 28, 8, "regular", COLORS.muted);
     this.pages.push(this.commands);
   }
 
   private newPage() {
     this.finishPage();
     this.startPage();
-    this.smallHeader();
+    this.textAt("DevisVéto", MARGIN, this.y, 11, "bold", COLORS.forest);
+    this.textAt("Rapport complet", PAGE_WIDTH - MARGIN - 92, this.y, 9, "regular", COLORS.muted);
+    this.y -= 19;
+    this.rule();
+    this.y -= 22;
   }
 
-  private ensure(height: number) {
+  ensure(height: number) {
     if (this.y - height < BOTTOM_LIMIT) this.newPage();
   }
 
@@ -160,37 +153,8 @@ class PdfCanvas {
     );
   }
 
-  private smallHeader() {
-    this.textAt("DevisVéto", MARGIN, this.y, 11, "bold", COLORS.forest);
-    this.textAt("Rapport complet", PAGE_WIDTH - MARGIN - 92, this.y, 9, "regular", COLORS.muted);
-    this.y -= 19;
-    this.rule();
-    this.y -= 22;
-  }
-
-  rect(x: number, y: number, width: number, height: number, color: Color, radius = 0) {
-    if (radius <= 0) {
-      this.commands.push(`q ${colorCommand(color)} rg ${x} ${y} ${width} ${height} re f Q`);
-      return;
-    }
-
-    const k = 0.5522847498;
-    const r = Math.min(radius, width / 2, height / 2);
-    const right = x + width;
-    const top = y + height;
-    this.commands.push(
-      `q ${colorCommand(color)} rg`,
-      `${x + r} ${y} m`,
-      `${right - r} ${y} l`,
-      `${right - r + r * k} ${y} ${right} ${y + r - r * k} ${right} ${y + r} c`,
-      `${right} ${top - r} l`,
-      `${right} ${top - r + r * k} ${right - r + r * k} ${top} ${right - r} ${top} c`,
-      `${x + r} ${top} l`,
-      `${x + r - r * k} ${top} ${x} ${top - r + r * k} ${x} ${top - r} c`,
-      `${x} ${y + r} l`,
-      `${x} ${y + r - r * k} ${x + r - r * k} ${y} ${x + r} ${y} c`,
-      "f Q"
-    );
+  rect(x: number, y: number, width: number, height: number, color: Color) {
+    this.commands.push(`q ${colorCommand(color)} rg ${x} ${y} ${width} ${height} re f Q`);
   }
 
   rule() {
@@ -208,9 +172,7 @@ class PdfCanvas {
     const color = options.color ?? COLORS.forest;
     const gapAfter = options.gapAfter ?? 0;
     const lines = wrapText(text, width, size, font);
-    const height = Math.max(lines.length, 1) * lineHeight + gapAfter;
-    this.ensure(height);
-
+    this.ensure(Math.max(lines.length, 1) * lineHeight + gapAfter);
     for (const line of lines) {
       if (line) this.textAt(line, x, this.y, size, font, color);
       this.y -= lineHeight;
@@ -248,15 +210,11 @@ class PdfCanvas {
   }
 
   bullet(text: string, color: Color = COLORS.forest) {
-    const bulletX = MARGIN + 4;
-    const textX = MARGIN + 18;
-    const width = CONTENT_WIDTH - 18;
-    const lines = wrapText(text, width, 10.2, "regular");
-    const height = Math.max(lines.length, 1) * 14.5 + 5;
-    this.ensure(height);
-    this.textAt("•", bulletX, this.y, 11, "bold", COLORS.green);
+    const lines = wrapText(text, CONTENT_WIDTH - 18, 10.2, "regular");
+    this.ensure(Math.max(lines.length, 1) * 14.5 + 5);
+    this.textAt("•", MARGIN + 4, this.y, 11, "bold", COLORS.green);
     for (const line of lines) {
-      this.textAt(line, textX, this.y, 10.2, "regular", color);
+      this.textAt(line, MARGIN + 18, this.y, 10.2, "regular", color);
       this.y -= 14.5;
     }
     this.y -= 5;
@@ -273,21 +231,13 @@ class PdfCanvas {
     this.textAt("RAPPORT COMPLET", MARGIN, PAGE_HEIGHT - 88, 9, "bold", COLORS.pale);
 
     const title = `Le ${report.documentLabel.toLowerCase()} de ${report.pet?.name || "votre animal"}, en clair`;
-    const titleLines = wrapText(title, CONTENT_WIDTH - 40, 27, "bold");
     let titleY = PAGE_HEIGHT - 124;
-    for (const line of titleLines) {
+    for (const line of wrapText(title, CONTENT_WIDTH - 40, 27, "bold")) {
       this.textAt(line, MARGIN, titleY, 27, "bold", COLORS.white);
       titleY -= 31;
     }
 
-    this.textAt(
-      `${report.preview.lines.length} prestations identifiées`,
-      MARGIN,
-      PAGE_HEIGHT - 208,
-      10,
-      "regular",
-      COLORS.pale
-    );
+    this.textAt(`${report.preview.lines.length} prestations identifiées`, MARGIN, PAGE_HEIGHT - 208, 10, "regular", COLORS.pale);
     this.textAt(
       formatMoney(report.preview.total_amount, report.preview.currency),
       PAGE_WIDTH - MARGIN - 105,
@@ -301,69 +251,60 @@ class PdfCanvas {
     this.label("Ce que signifie ce document");
     this.heading(report.preview.intervention, 21);
     this.paragraph(report.summaryParagraph, 20);
-
     this.label("Les points à retenir");
     for (const fact of report.keyFacts.slice(0, 4)) this.bullet(fact);
-    this.spacer(6);
-
-    this.rect(MARGIN, this.y - 74, CONTENT_WIDTH, 74, COLORS.pale, 12);
-    this.textAt("À garder en tête", MARGIN + 16, this.y - 22, 10, "bold", COLORS.green);
-    const notice = "Ce rapport explique le document fourni. Il ne pose aucun diagnostic, ne juge pas la nécessité des soins et ne remplace pas les explications de la clinique.";
-    const noticeLines = wrapText(notice, CONTENT_WIDTH - 32, 9.2, "regular");
-    let noticeY = this.y - 40;
-    for (const line of noticeLines.slice(0, 3)) {
-      this.textAt(line, MARGIN + 16, noticeY, 9.2, "regular", COLORS.muted);
-      noticeY -= 12.5;
-    }
-    this.y -= 94;
+    this.spacer(8);
+    this.notice(
+      "À garder en tête",
+      "Ce rapport explique le document fourni. Il ne pose aucun diagnostic, ne juge pas la nécessité des soins et ne remplace pas les explications de la clinique."
+    );
   }
 
-  sectionBreak(label: string, title: string) {
+  section(label: string, title: string) {
     this.ensure(70);
     this.spacer(8);
     this.label(label);
     this.heading(title, 20);
   }
 
-  lineDetail(
-    line: ReportViewModel["preview"]["lines"][number],
-    currency: string,
-    index: number
-  ) {
-    this.ensure(105);
-    this.rect(MARGIN, this.y - 30, CONTENT_WIDTH, 30, index % 2 === 0 ? COLORS.pale : COLORS.cream, 7);
+  lineDetail(line: ReportViewModel["preview"]["lines"][number], currency: string, index: number) {
+    this.ensure(112);
+    this.rect(MARGIN, this.y - 30, CONTENT_WIDTH, 30, index % 2 === 0 ? COLORS.pale : COLORS.cream);
     this.textAt(line.original_label, MARGIN + 12, this.y - 19, 11, "bold", COLORS.forest);
-    this.textAt(
-      formatMoney(line.amount, currency),
-      PAGE_WIDTH - MARGIN - 92,
-      this.y - 19,
-      10.5,
-      "bold",
-      COLORS.forest
-    );
+    this.textAt(formatMoney(line.amount, currency), PAGE_WIDTH - MARGIN - 92, this.y - 19, 10.5, "bold", COLORS.forest);
     this.y -= 44;
-
-    this.write("Ce que cela signifie", {
-      size: 8.5,
-      lineHeight: 11,
-      font: "bold",
-      color: COLORS.green,
-      gapAfter: 4,
-    });
+    this.write("Ce que cela signifie", { size: 8.5, lineHeight: 11, font: "bold", color: COLORS.green, gapAfter: 4 });
     this.paragraph(line.explanation, 7);
-
     if (line.clarification) {
-      this.write("À confirmer avec la clinique", {
-        size: 8.5,
-        lineHeight: 11,
-        font: "bold",
-        color: COLORS.coral,
-        gapAfter: 4,
-      });
+      this.write("À confirmer avec la clinique", { size: 8.5, lineHeight: 11, font: "bold", color: COLORS.coral, gapAfter: 4 });
       this.paragraph(line.clarification, 8);
     }
     this.rule();
     this.y -= 14;
+  }
+
+  categoryRow(label: string, amount: string) {
+    this.ensure(24);
+    this.textAt(label, MARGIN, this.y, 10.5, "bold", COLORS.forest);
+    this.textAt(amount, PAGE_WIDTH - MARGIN - 92, this.y, 10.5, "bold", COLORS.green);
+    this.y -= 18;
+    this.rule();
+    this.y -= 10;
+  }
+
+  notice(title: string, text: string) {
+    const lines = wrapText(text, CONTENT_WIDTH - 32, 9.2, "regular");
+    const height = 34 + lines.length * 13;
+    this.ensure(height + 8);
+    const top = this.y;
+    this.rect(MARGIN, top - height, CONTENT_WIDTH, height, COLORS.pale);
+    this.textAt(title, MARGIN + 16, top - 20, 9.5, "bold", COLORS.green);
+    let textY = top - 38;
+    for (const line of lines) {
+      this.textAt(line, MARGIN + 16, textY, 9.2, "regular", COLORS.muted);
+      textY -= 13;
+    }
+    this.y -= height + 8;
   }
 
   finish() {
@@ -378,32 +319,18 @@ function buildPdfObjects(pageStreams: string[]) {
   const contentIds = pageStreams.map((_, index) => 6 + index * 2);
 
   objects.set(1, Buffer.from("<< /Type /Catalog /Pages 2 0 R >>", "ascii"));
-  objects.set(
-    2,
-    Buffer.from(`<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] >>`, "ascii")
-  );
-  objects.set(
-    3,
-    Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>", "ascii")
-  );
-  objects.set(
-    4,
-    Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>", "ascii")
-  );
+  objects.set(2, Buffer.from(`<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] >>`, "ascii"));
+  objects.set(3, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>", "ascii"));
+  objects.set(4, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>", "ascii"));
 
   pageStreams.forEach((stream, index) => {
-    const pageId = pageIds[index];
-    const contentId = contentIds[index];
     const streamBuffer = Buffer.from(stream, "ascii");
     objects.set(
-      pageId,
-      Buffer.from(
-        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentId} 0 R >>`,
-        "ascii"
-      )
+      pageIds[index],
+      Buffer.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[index]} 0 R >>`, "ascii")
     );
     objects.set(
-      contentId,
+      contentIds[index],
       Buffer.concat([
         Buffer.from(`<< /Length ${streamBuffer.length} >>\nstream\n`, "ascii"),
         streamBuffer,
@@ -430,102 +357,57 @@ function buildPdfObjects(pageStreams: string[]) {
 
   const xrefOffset = cursor;
   const xrefLines = ["xref", `0 ${maxId + 1}`, "0000000000 65535 f "];
-  for (let id = 1; id <= maxId; id += 1) {
-    xrefLines.push(`${String(offsets[id]).padStart(10, "0")} 00000 n `);
-  }
-  const trailer = [
-    ...xrefLines,
-    "trailer",
-    `<< /Size ${maxId + 1} /Root 1 0 R >>`,
-    "startxref",
-    String(xrefOffset),
-    "%%EOF",
-    "",
-  ].join("\n");
-  chunks.push(Buffer.from(trailer, "ascii"));
+  for (let id = 1; id <= maxId; id += 1) xrefLines.push(`${String(offsets[id]).padStart(10, "0")} 00000 n `);
+  chunks.push(
+    Buffer.from(
+      [...xrefLines, "trailer", `<< /Size ${maxId + 1} /Root 1 0 R >>`, "startxref", String(xrefOffset), "%%EOF", ""].join("\n"),
+      "ascii"
+    )
+  );
   return Buffer.concat(chunks);
 }
 
 export function generateReportPdf(report: ReportViewModel) {
-  const canvas = new PdfCanvas();
-  canvas.cover(report);
+  const pdf = new PdfWriter();
+  pdf.cover(report);
 
-  canvas.sectionBreak("Détail du document", "Chaque ligne, expliquée simplement");
-  for (const [index, line] of report.preview.lines.entries()) {
-    canvas.lineDetail(line, report.preview.currency, index);
-  }
+  pdf.section("Détail du document", "Chaque ligne, expliquée simplement");
+  report.preview.lines.forEach((line, index) => pdf.lineDetail(line, report.preview.currency, index));
 
   if (report.categoryTotals.length > 0) {
-    canvas.sectionBreak("Lecture du montant", "Comment le montant se répartit");
+    pdf.section("Lecture du montant", "Comment le montant se répartit");
     for (const item of report.categoryTotals) {
-      canvas.ensure(24);
-      canvas.write(item.category, {
-        width: CONTENT_WIDTH - 110,
-        size: 10.5,
-        lineHeight: 14,
-        font: "bold",
-        color: COLORS.forest,
-      });
-      canvas.write(formatMoney(item.amount, report.preview.currency), {
-        x: PAGE_WIDTH - MARGIN - 100,
-        width: 100,
-        size: 10.5,
-        lineHeight: 14,
-        font: "bold",
-        color: COLORS.green,
-        gapAfter: 4,
-      });
-      canvas.rule();
-      canvas.spacer(9);
+      pdf.categoryRow(item.category, formatMoney(item.amount, report.preview.currency));
     }
-    canvas.paragraph(
+    pdf.paragraph(
       "Cette répartition reprend uniquement les montants lisibles du document. Elle ne permet pas de conclure qu’un tarif est normal, anormal ou justifié.",
       10
     );
   }
 
-  canvas.sectionBreak("Conclusion", "Ce que l’on peut retenir du document");
-  canvas.paragraph(report.conclusion, 18);
+  pdf.section("Conclusion", "Ce que l’on peut retenir du document");
+  pdf.paragraph(report.conclusion, 18);
+  pdf.label("Ce qui est clairement indiqué");
+  report.clearlyIndicated.forEach((item) => pdf.bullet(item));
+  pdf.spacer(8);
+  pdf.label("Ce qui reste à confirmer");
+  if (report.toConfirm.length) report.toConfirm.forEach((item) => pdf.bullet(item, COLORS.muted));
+  else pdf.paragraph("Aucun point de clarification majeur n’a été relevé dans les informations lisibles.");
 
-  canvas.label("Ce qui est clairement indiqué");
-  for (const item of report.clearlyIndicated) canvas.bullet(item);
-  canvas.spacer(8);
-
-  canvas.label("Ce qui reste à confirmer");
-  if (report.toConfirm.length > 0) {
-    for (const item of report.toConfirm) canvas.bullet(item, COLORS.muted);
+  pdf.section("Préparer l’échange", "Les questions à poser à la clinique");
+  if (report.preview.questions.length) {
+    report.preview.questions.forEach((question, index) =>
+      pdf.write(`${index + 1}. ${question}`, { size: 10.5, lineHeight: 15.5, color: COLORS.forest, gapAfter: 8 })
+    );
   } else {
-    canvas.paragraph("Aucun point de clarification majeur n’a été relevé dans les informations lisibles.");
+    pdf.paragraph("Aucune question personnalisée n’a été générée à partir des informations lisibles.");
   }
 
-  canvas.sectionBreak("Préparer l’échange", "Les questions à poser à la clinique");
-  if (report.preview.questions.length > 0) {
-    for (const [index, question] of report.preview.questions.entries()) {
-      canvas.ensure(34);
-      canvas.write(`${index + 1}. ${question}`, {
-        size: 10.5,
-        lineHeight: 15.5,
-        color: COLORS.forest,
-        gapAfter: 8,
-      });
-    }
-  } else {
-    canvas.paragraph("Aucune question personnalisée n’a été générée à partir des informations lisibles.");
-  }
-
-  canvas.spacer(12);
-  canvas.rect(MARGIN, canvas["y"] - 82, CONTENT_WIDTH, 82, COLORS.pale, 12);
-  canvas.write(
-    "DevisVéto explique le contenu du document fourni. Ce rapport ne constitue pas un diagnostic, ne juge pas la nécessité des soins et ne remplace pas les explications de la clinique vétérinaire. Les éléments indiqués comme étant à confirmer n’ont pas pu être établis à partir du document seul.",
-    {
-      x: MARGIN + 16,
-      width: CONTENT_WIDTH - 32,
-      size: 9.2,
-      lineHeight: 13,
-      color: COLORS.muted,
-      gapAfter: 0,
-    }
+  pdf.spacer(12);
+  pdf.notice(
+    "Limites du rapport",
+    "DevisVéto explique le contenu du document fourni. Ce rapport ne constitue pas un diagnostic, ne juge pas la nécessité des soins et ne remplace pas les explications de la clinique vétérinaire. Les éléments indiqués comme étant à confirmer n’ont pas pu être établis à partir du document seul."
   );
 
-  return buildPdfObjects(canvas.finish());
+  return buildPdfObjects(pdf.finish());
 }
