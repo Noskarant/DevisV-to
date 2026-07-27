@@ -1,12 +1,19 @@
 function layout(title: string, bodyHtml: string) {
   return `
-  <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
-    <h1 style="font-size: 20px; margin-bottom: 8px;">${title}</h1>
-    <div style="font-size: 14px; line-height: 1.6; color: #334155;">${bodyHtml}</div>
-    <p style="margin-top: 32px; font-size: 12px; color: #94a3b8;">
-      DevisVéto — explication de devis vétérinaire, ne remplace pas l'avis de votre vétérinaire.
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; color: #173b35;">
+    <div style="padding: 24px; border: 1px solid #dce7e2; border-radius: 20px; background: #ffffff;">
+      <div style="font-size: 18px; font-weight: 800; color: #0c5b50; margin-bottom: 20px;">DevisVéto</div>
+      <h1 style="font-size: 24px; line-height: 1.25; margin: 0 0 12px; color: #123f38;">${title}</h1>
+      <div style="font-size: 14px; line-height: 1.7; color: #526f68;">${bodyHtml}</div>
+    </div>
+    <p style="margin-top: 20px; font-size: 12px; line-height: 1.5; color: #829791; text-align: center;">
+      DevisVéto explique les documents vétérinaires et ne remplace pas l'avis de votre vétérinaire.
     </p>
   </div>`;
+}
+
+function button(url: string, label: string) {
+  return `<p style="margin: 24px 0 8px;"><a href="${url}" style="display:inline-block;background:#0c5b50;color:#fff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:999px;">${label}</a></p>`;
 }
 
 export function documentReceivedTemplate(petName: string) {
@@ -14,6 +21,15 @@ export function documentReceivedTemplate(petName: string) {
     "Votre document a bien été reçu",
     `<p>Nous avons bien reçu le devis concernant ${petName}. Il est en cours de lecture.</p>
      <p>Vous pourrez consulter un aperçu gratuit puis débloquer l'explication complète depuis votre espace.</p>`
+  );
+}
+
+export function previewReadyTemplate(petName: string, previewUrl: string) {
+  return layout(
+    `L'aperçu de ${petName} est disponible`,
+    `<p>Le document a été lu et organisé. Vous pouvez consulter gratuitement plusieurs explications, les premières questions à poser et les points à faire préciser.</p>
+     ${button(previewUrl, "Consulter mon aperçu privé")}
+     <p style="font-size:12px;color:#829791;">Le rapport complet est proposé à 6,90 €, en paiement unique et sans abonnement.</p>`
   );
 }
 
@@ -37,7 +53,7 @@ export function reportReadyTemplate(petName: string, reportUrl: string) {
   return layout(
     "Votre rapport est disponible",
     `<p>L'explication du devis de ${petName} est prête et a été relue par notre équipe.</p>
-     <p><a href="${reportUrl}" style="color:#0f172a;">Consulter mon rapport</a></p>`
+     ${button(reportUrl, "Consulter mon rapport")}`
   );
 }
 
