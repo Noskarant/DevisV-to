@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/session";
 import { documentUploadSchema } from "@/lib/validation/schemas";
+import { sendDocumentReceivedEmail } from "@/lib/email/send";
 import { NextResponse } from "next/server";
 
 const ALLOWED_MIME = new Set([
@@ -85,6 +86,16 @@ export async function POST(request: Request) {
   }
 
   await supabase.from("cases").update({ status: "extraction_pending" }).eq("id", caseId);
+
+  const { data: caseInfo } = await supabase
+    .from("cases")
+    .select("pets(name)")
+    .eq("id", caseId)
+    .single();
+  const petName = (caseInfo?.pets as unknown as { name: string } | null)?.name ?? "votre animal";
+  if (user.email) {
+    await sendDocumentReceivedEmail(user.email, petName);
+  }
 
   return NextResponse.json({ document_id: docRow.id, storage_path: storagePath });
 }

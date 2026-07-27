@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
+import { sendNeedsInformationEmail, sendReportReadyEmail } from "@/lib/email/send";
 
 async function logAudit(
   caseId: string,
@@ -115,6 +116,20 @@ export async function setCaseStatus(caseId: string, status: string) {
   const { error } = await supabase.from("cases").update({ status }).eq("id", caseId);
   if (error) throw new Error(error.message);
   await logAudit(caseId, admin.id, "set_status", { status });
+
+  if (status === "needs_information") {
+    const { data: caseRow } = await supabase
+      .from("cases")
+      .select("pets(name), profiles(email)")
+      .eq("id", caseId)
+      .single();
+    const pet = caseRow?.pets as unknown as { name: string } | null;
+    const profile = caseRow?.profiles as unknown as { email: string } | null;
+    if (profile?.email) {
+      await sendNeedsInformationEmail(profile.email, pet?.name ?? "votre animal");
+    }
+  }
+
   revalidatePath(`/admin/dossiers/${caseId}`);
 }
 
@@ -138,5 +153,19 @@ export async function approveAndPublish(caseId: string, reportId: string) {
   revalidatePath(`/admin/dossiers/${caseId}`);
   revalidatePath("/admin");
 
-  // L'envoi de l'email "rapport disponible" est branché à l'étape Emails du plan.
+  const { data: caseRow } = await supabase
+    .from("cases")
+    .select("pets(name), profiles(email)")
+    .eq("id", caseId)
+    .single();
+  const pet = caseRow?.pets as unknown as { name: string } | null;
+  const profile = caseRow?.profiles as unknown as { email: string } | null;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  if (profile?.email) {
+    await sendReportReadyEmail(
+      profile.email,
+      pet?.name ?? "votre animal",
+      `${appUrl}/dashboard/dossiers/${caseId}/rapport`
+    );
+  }
 }
