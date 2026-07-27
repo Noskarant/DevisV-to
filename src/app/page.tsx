@@ -53,34 +53,34 @@ const explanations = [
   {
     label: "Bilan préopératoire",
     amount: "78,00 €",
-    text: "Explication complète disponible dans le rapport.",
+    text: "Le rapport complet détaille le rôle de cette ligne et les questions utiles à poser.",
     locked: true,
   },
 ];
 
 const recordFeatures = [
-  { title: "Une timeline par animal", text: "Devis, factures et rapports restent classés chronologiquement dans le bon dossier." },
+  { title: "Une fiche par animal", text: "Devis, factures et rapports restent classés chronologiquement au même endroit." },
   { title: "Comparaison des documents", text: "Repérez les lignes ajoutées, retirées ou présentées différemment depuis le document précédent." },
-  { title: "Poids et rappels", text: "Conservez les mesures et les dates utiles explicitement renseignées, sans automatiser de conseil médical." },
-  { title: "Contexte complet", text: "Race, âge, allergies déclarées, traitements, clinique habituelle, assurance et notes pratiques." },
+  { title: "Poids et rappels", text: "Conservez les mesures et les dates explicitement indiquées, sans automatiser de conseil médical." },
+  { title: "Informations utiles", text: "Race, âge, allergies déclarées, traitements, clinique habituelle, assurance et notes pratiques." },
 ];
 
 const faqItems = [
   {
-    question: "DevisVéto peut-il me dire si mon vétérinaire est trop cher ?",
-    answer: "Non. Le service explique la composition du document et les éléments qui peuvent influencer le montant. Il ne classe jamais un tarif comme normal, anormal ou excessif.",
+    question: "DevisVéto compare-t-il les tarifs des cliniques ?",
+    answer: "Non. Le service explique la composition du document et les éléments qui peuvent influencer son montant. Il ne classe jamais un tarif et ne porte aucun jugement sur la clinique.",
   },
   {
-    question: "Est-ce un avis médical ?",
+    question: "Est-ce un avis vétérinaire ?",
     answer: "Non. DevisVéto ne pose aucun diagnostic, n’évalue pas la nécessité d’un soin et ne remplace jamais l’échange avec votre vétérinaire.",
   },
   {
-    question: "Suis-je obligé de m’abonner ?",
-    answer: "Non. Après l’aperçu gratuit, vous choisissez librement l’analyse unique à 8,90 € ou DevisVéto Plus à 6,90 €/mois. Aucune option n’est présélectionnée.",
+    question: "Dois-je choisir un abonnement ?",
+    answer: "Non. Vous commencez par un aperçu gratuit, puis vous choisissez librement l’analyse unique à 8,90 € ou DevisVéto Plus à 6,90 €/mois. Aucune formule n’est présélectionnée.",
   },
   {
     question: "Que contient DevisVéto Plus ?",
-    answer: "Le premier rapport est inclus, puis un crédit d’analyse est ajouté chaque mois. Les crédits se cumulent jusqu’à trois et sont utilisables pour tous les animaux du foyer.",
+    answer: "Le rapport en cours est inclus, puis un crédit d’analyse est ajouté chaque mois. Les crédits se cumulent jusqu’à trois et sont utilisables pour tous les animaux du foyer.",
   },
 ];
 
@@ -98,7 +98,7 @@ export default function HomePage() {
           </Link>
           <nav className="flex items-center gap-3">
             <Link href="/connexion" className="hidden text-sm font-extrabold text-[#45665f] hover:text-[#0c5b50] sm:block">Mon espace</Link>
-            <Link href="/analyser" className="rounded-full bg-[#0c5b50] px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_9px_25px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">Analyser un document</Link>
+            <Link href="/analyser" className="rounded-full bg-[#0c5b50] px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_9px_25px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">Voir mon aperçu gratuit</Link>
           </nav>
         </div>
       </header>
@@ -109,40 +109,40 @@ export default function HomePage() {
         <div className="relative mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#c9dfd7] bg-white/80 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-[#397268] shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-[#4f9b85]" /> Aperçu personnalisé avant paiement
+              <span className="h-2 w-2 rounded-full bg-[#4f9b85]" /> Première lecture offerte
             </div>
             <h1 className="mt-6 max-w-3xl font-serif text-5xl font-semibold leading-[1.02] tracking-[-0.055em] text-[#123f38] sm:text-6xl lg:text-[72px]">
-              Comprenez ses documents. Construisez son dossier dans le temps.
+              Votre devis vétérinaire, expliqué ligne par ligne.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-[#617b75] sm:text-lg">
-              DevisVéto explique les lignes d’un devis ou d’une facture vétérinaire, prépare vos questions et organise chaque document dans la timeline personnelle de votre animal.
+              Déposez un devis ou une facture. DevisVéto repère les prestations, reformule les termes et prépare les questions utiles à poser à la clinique.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/analyser" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0c5b50] px-6 py-4 text-sm font-extrabold text-white shadow-[0_14px_34px_rgba(12,91,80,0.24)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
-                Obtenir mon aperçu gratuit <ArrowIcon />
+                Voir mon aperçu gratuit <ArrowIcon />
               </Link>
-              <Link href="#dossiers" className="inline-flex items-center justify-center rounded-full border border-[#bfd3cc] bg-white/85 px-6 py-4 text-sm font-extrabold text-[#315f57] hover:bg-white">Découvrir le dossier animal</Link>
+              <Link href="#exemple" className="inline-flex items-center justify-center rounded-full border border-[#bfd3cc] bg-white/85 px-6 py-4 text-sm font-extrabold text-[#315f57] hover:bg-white">Voir un exemple réel</Link>
             </div>
             <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold text-[#6c837d]">
-              <span className="inline-flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 text-[#0c5b50]" /> Aucune conclusion médicale</span>
-              <span className="inline-flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 text-[#0c5b50]" /> Document anonymisé avant analyse textuelle</span>
-              <span className="inline-flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 text-[#0c5b50]" /> Relecture humaine après paiement</span>
+              <span className="inline-flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 text-[#0c5b50]" /> Sans diagnostic ni avis sur la nécessité des soins</span>
+              <span className="inline-flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 text-[#0c5b50]" /> Informations sensibles retirées avant l’analyse textuelle</span>
+              <span className="inline-flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 text-[#0c5b50]" /> Rapport complet relu par une personne</span>
             </div>
           </div>
 
-          <div className="relative">
+          <div id="exemple" className="relative scroll-mt-24">
             <div className="absolute -inset-5 rounded-[38px] bg-white/45 blur-xl" />
             <div className="relative rounded-[32px] border border-white bg-white p-5 shadow-[0_34px_90px_rgba(31,78,67,0.16)] sm:p-7">
               <div className="flex items-start justify-between gap-4 rounded-[22px] bg-[#123f38] px-5 py-5 text-white">
                 <div><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#9fcfc1]">Aperçu du document de Nala</p><h2 className="mt-2 font-serif text-2xl font-semibold tracking-[-0.035em]">Intervention dentaire</h2></div>
-                <div className="rounded-xl bg-white/10 px-3 py-2 text-right"><p className="text-[9px] font-bold uppercase text-[#aac9c1]">Total</p><p className="mt-1 text-lg font-extrabold">487,00 €</p></div>
+                <div className="rounded-xl bg-white/10 px-3 py-2 text-right"><p className="text-[9px] font-bold uppercase text-[#aac9c1]">Total indiqué</p><p className="mt-1 text-lg font-extrabold">487,00 €</p></div>
               </div>
               <div className="mt-5 divide-y divide-[#e4ece9]">
                 {explanations.map((item) => (
                   <div key={item.label} className="relative py-5 first:pt-0">
-                    <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-extrabold text-[#204f47]">{item.label}</p><p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#849792]">Prestation détectée</p></div><p className="text-sm font-extrabold text-[#123f38]">{item.amount}</p></div>
+                    <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-extrabold text-[#204f47]">{item.label}</p><p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#849792]">Ligne détectée</p></div><p className="text-sm font-extrabold text-[#123f38]">{item.amount}</p></div>
                     <p className={`mt-3 text-sm leading-6 ${item.locked ? "text-[#a0afab]" : "text-[#617b75]"}`}>{item.text}</p>
-                    {item.locked && <div className="absolute inset-x-0 bottom-0 flex h-14 items-end justify-center bg-gradient-to-t from-white via-white/95 to-transparent"><span className="inline-flex items-center gap-2 rounded-full border border-[#d5e2dd] bg-white px-3 py-1.5 text-[11px] font-extrabold text-[#617b75]"><LockIcon /> Débloqué après paiement</span></div>}
+                    {item.locked && <div className="absolute inset-x-0 bottom-0 flex h-14 items-end justify-center bg-gradient-to-t from-white via-white/95 to-transparent"><span className="inline-flex items-center gap-2 rounded-full border border-[#d5e2dd] bg-white px-3 py-1.5 text-[11px] font-extrabold text-[#617b75]"><LockIcon /> Suite détaillée dans le rapport complet</span></div>}
                   </div>
                 ))}
               </div>
@@ -159,10 +159,10 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-12 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
             <div className="lg:sticky lg:top-8">
-              <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#9fcfc1]">Le produit qui donne envie de revenir</p>
-              <h2 className="mt-4 font-serif text-4xl font-semibold leading-[1.08] tracking-[-0.045em] sm:text-5xl">Un vrai dossier pour chacun de vos animaux.</h2>
-              <p className="mt-5 text-base leading-8 text-[#c4d7d2]">Le rapport n’est plus isolé dans un email. Il rejoint un espace utile au quotidien, structuré autour de l’animal et de son historique documentaire.</p>
-              <Link href="/dashboard/animaux/nouveau" className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-extrabold text-[#123f38] hover:bg-[#edf5f2]">Créer un dossier animal <ArrowIcon /></Link>
+              <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#9fcfc1]">Le suivi qui reste utile</p>
+              <h2 className="mt-4 font-serif text-4xl font-semibold leading-[1.08] tracking-[-0.045em] sm:text-5xl">Chaque animal garde son histoire au même endroit.</h2>
+              <p className="mt-5 text-base leading-8 text-[#c4d7d2]">Le rapport rejoint une fiche claire avec ses documents, ses mesures et les dates que vous souhaitez retrouver.</p>
+              <Link href="/dashboard/animaux/nouveau" className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-extrabold text-[#123f38] hover:bg-[#edf5f2]">Créer la fiche de mon animal <ArrowIcon /></Link>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -175,7 +175,7 @@ export default function HomePage() {
               ))}
               <div className="sm:col-span-2 rounded-[26px] bg-[#e9f4f0] p-6 text-[#173b35] sm:p-8">
                 <div className="grid gap-6 sm:grid-cols-[1fr_auto] sm:items-end">
-                  <div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Exemple de timeline</p><h3 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Nala · ses documents au même endroit</h3></div>
+                  <div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Exemple de suivi</p><h3 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Nala · tous ses documents réunis</h3></div>
                   <span className="rounded-full bg-white px-4 py-2 text-xs font-extrabold text-[#397268]">3 documents</span>
                 </div>
                 <div className="mt-6 space-y-3">
@@ -190,31 +190,31 @@ export default function HomePage() {
       <section className="px-5 py-20 sm:px-8 sm:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#5d8179]">Tarifs simples</p>
-            <h2 className="mt-4 font-serif text-4xl font-semibold tracking-[-0.045em] text-[#123f38] sm:text-5xl">Voyez d’abord l’aperçu. Choisissez ensuite.</h2>
-            <p className="mt-5 text-base leading-8 text-[#6c837d]">Aucun abonnement n’est imposé et aucune formule n’est présélectionnée.</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#5d8179]">Deux offres simples</p>
+            <h2 className="mt-4 font-serif text-4xl font-semibold tracking-[-0.045em] text-[#123f38] sm:text-5xl">Commencez gratuitement. Gardez la formule qui vous convient.</h2>
+            <p className="mt-5 text-base leading-8 text-[#6c837d]">Aucun abonnement imposé. Aucune formule présélectionnée.</p>
           </div>
 
           <div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">
             <article className="rounded-[28px] border border-[#d8e5e0] bg-white p-7 shadow-[0_18px_55px_rgba(31,78,67,0.07)]">
               <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#78908a]">Analyse unique</p>
               <div className="mt-3 flex items-baseline gap-2"><span className="font-serif text-5xl font-semibold tracking-[-0.05em] text-[#123f38]">8,90 €</span><span className="text-xs font-bold text-[#78908a]">une fois</span></div>
-              <p className="mt-4 text-sm leading-7 text-[#647d77]">Pour comprendre le document présent, sans renouvellement.</p>
+              <p className="mt-4 text-sm leading-7 text-[#647d77]">Pour comprendre un document précis, sans renouvellement.</p>
               <ul className="mt-6 space-y-3 text-sm font-semibold text-[#526f68]">
-                {["Rapport complet", "Questions personnalisées", "Relecture humaine", "Conservation dans le dossier animal"].map((item) => <li key={item} className="flex gap-2"><CheckIcon className="mt-0.5 shrink-0 text-[#0c5b50]" /> {item}</li>)}
+                {["Rapport complet", "Questions personnalisées", "Relecture humaine", "Ajout à la fiche de l’animal"].map((item) => <li key={item} className="flex gap-2"><CheckIcon className="mt-0.5 shrink-0 text-[#0c5b50]" /> {item}</li>)}
               </ul>
-              <Link href="/analyser" className="mt-8 flex w-full justify-center rounded-full border border-[#bfd3cc] px-5 py-3.5 text-sm font-extrabold text-[#315f57] hover:bg-[#f1f6f4]">Commencer gratuitement</Link>
+              <Link href="/analyser" className="mt-8 flex w-full justify-center rounded-full border border-[#bfd3cc] px-5 py-3.5 text-sm font-extrabold text-[#315f57] hover:bg-[#f1f6f4]">Commencer par l’aperçu gratuit</Link>
             </article>
 
             <article className="relative overflow-hidden rounded-[28px] border-2 border-[#79ae9e] bg-[#edf7f3] p-7 shadow-[0_22px_65px_rgba(31,78,67,0.12)]">
               <span className="absolute right-4 top-4 rounded-full bg-[#0c5b50] px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.1em] text-white">Le plus complet</span>
               <p className="pr-28 text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">DevisVéto Plus</p>
               <div className="mt-3 flex items-baseline gap-2"><span className="font-serif text-5xl font-semibold tracking-[-0.05em] text-[#123f38]">6,90 €</span><span className="text-xs font-bold text-[#78908a]">par mois</span></div>
-              <p className="mt-4 text-sm font-extrabold leading-7 text-[#315f57]">Le premier rapport est inclus immédiatement.</p>
+              <p className="mt-4 text-sm font-extrabold leading-7 text-[#315f57]">Le rapport en cours est inclus immédiatement.</p>
               <ul className="mt-6 space-y-3 text-sm font-semibold text-[#526f68]">
-                {["1 nouveau crédit chaque mois", "Crédits cumulables jusqu’à 3", "Tous les animaux du foyer", "Dossiers, comparaisons, poids et rappels", "Résiliable à tout moment"].map((item) => <li key={item} className="flex gap-2"><CheckIcon className="mt-0.5 shrink-0 text-[#0c5b50]" /> {item}</li>)}
+                {["1 nouveau crédit chaque mois", "Crédits cumulables jusqu’à 3", "Tous les animaux du foyer", "Comparaisons, poids et rappels", "Résiliable à tout moment"].map((item) => <li key={item} className="flex gap-2"><CheckIcon className="mt-0.5 shrink-0 text-[#0c5b50]" /> {item}</li>)}
               </ul>
-              <Link href="/analyser" className="mt-8 flex w-full justify-center rounded-full bg-[#0c5b50] px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] hover:bg-[#084d44]">Obtenir mon aperçu</Link>
+              <Link href="/analyser" className="mt-8 flex w-full justify-center rounded-full bg-[#0c5b50] px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] hover:bg-[#084d44]">Voir mon aperçu gratuit</Link>
             </article>
           </div>
         </div>
@@ -222,9 +222,9 @@ export default function HomePage() {
 
       <section className="border-y border-[#dce7e2] bg-white px-5 py-20 sm:px-8 sm:py-24">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr]">
-          <div><p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#5d8179]">Cadre de confiance</p><h2 className="mt-4 font-serif text-4xl font-semibold tracking-[-0.045em] text-[#123f38]">Un outil documentaire, avec des limites explicites.</h2><p className="mt-5 text-sm leading-7 text-[#6c837d]">DevisVéto est conçu pour expliquer, organiser et préparer l’échange avec la clinique — jamais pour décider à la place du vétérinaire.</p></div>
+          <div><p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#5d8179]">Cadre de confiance</p><h2 className="mt-4 font-serif text-4xl font-semibold tracking-[-0.045em] text-[#123f38]">Un outil documentaire, avec des limites explicites.</h2><p className="mt-5 text-sm leading-7 text-[#6c837d]">DevisVéto explique, organise et prépare l’échange avec la clinique. Il ne décide jamais à la place du vétérinaire.</p></div>
           <div className="grid gap-4 sm:grid-cols-2">
-            {["Aucun diagnostic ni recommandation de soin", "Aucun verdict sur le caractère normal d’un prix", "Incertitudes et lignes illisibles signalées", "Validation humaine du rapport payé"].map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-[#dce7e2] bg-[#f8faf9] p-5 text-sm font-extrabold leading-6 text-[#45665f]"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e4f1ec] text-[#0c5b50]"><CheckIcon /></span>{item}</div>)}
+            {["Aucun diagnostic ni recommandation de soin", "Aucun verdict sur les tarifs de la clinique", "Incertitudes et lignes illisibles signalées", "Relecture humaine avant remise du rapport complet"].map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-[#dce7e2] bg-[#f8faf9] p-5 text-sm font-extrabold leading-6 text-[#45665f]"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e4f1ec] text-[#0c5b50]"><CheckIcon /></span>{item}</div>)}
           </div>
         </div>
       </section>
@@ -240,9 +240,10 @@ export default function HomePage() {
 
       <section className="px-5 pb-20 sm:px-8 sm:pb-28">
         <div className="mx-auto max-w-6xl rounded-[34px] bg-[#123f38] px-6 py-12 text-center text-white shadow-[0_28px_75px_rgba(18,63,56,0.2)] sm:px-12 sm:py-16">
-          <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#9fcfc1]">Le premier pas reste gratuit</p>
-          <h2 className="mx-auto mt-4 max-w-3xl font-serif text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Envoyez le document et jugez la qualité de l’aperçu avant de payer.</h2>
-          <Link href="/analyser" className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-4 text-sm font-extrabold text-[#123f38] hover:bg-[#edf5f2]">Analyser mon document <ArrowIcon /></Link>
+          <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#9fcfc1]">Votre première lecture est offerte</p>
+          <h2 className="mx-auto mt-4 max-w-3xl font-serif text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Déposez le document. Découvrez immédiatement ce que DevisVéto peut vous apporter.</h2>
+          <Link href="/analyser" className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-4 text-sm font-extrabold text-[#123f38] hover:bg-[#edf5f2]">Voir mon aperçu gratuit <ArrowIcon /></Link>
+          <p className="mt-4 text-xs text-[#abc8c0]">Deux explications et deux questions personnalisées dès le premier aperçu.</p>
         </div>
       </section>
 
