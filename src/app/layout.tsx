@@ -1,5 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Onest, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
+
+const onest = Onest({
+  subsets: ["latin"],
+  variable: "--font-onest",
+  display: "swap",
+});
+
+const sourceSans = Source_Sans_3({
+  subsets: ["latin"],
+  variable: "--font-source-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -41,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className="h-full antialiased">
+    <html lang="fr" className={`${onest.variable} ${sourceSans.variable} h-full antialiased`}>
       <body className="min-h-full bg-[#fbfaf6] font-sans text-[#173b35]">{children}</body>
     </html>
   );
