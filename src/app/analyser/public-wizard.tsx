@@ -16,10 +16,10 @@ type InitialPet = {
 const steps = ["Le document", "Votre animal", "Votre email"];
 const processingLabels = [
   "Lecture du document",
-  "Repérage des prestations",
-  "Explication des premières lignes",
-  "Préparation des questions utiles",
-  "Création de votre aperçu privé",
+  "Repérage des lignes",
+  "Explication des termes",
+  "Préparation de vos questions",
+  "Mise en forme de l’aperçu",
 ];
 
 function FileIcon() {
@@ -130,12 +130,12 @@ export function PublicWizard({ initialPet = null }: { initialPet?: InitialPet | 
           <div className="absolute inset-0 animate-ping rounded-full border border-[#83b9aa]/40" />
           <FileIcon />
         </div>
-        <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#5d8179]">Votre aperçu se prépare</p>
-        <h2 className="mt-3 font-serif text-3xl font-semibold tracking-[-0.035em] text-[#123f38] sm:text-4xl">
-          Nous rendons le document de {petName} plus facile à comprendre.
+        <p className="mt-8 text-xs font-semibold uppercase text-[#5d8179]">Nous lisons votre document</p>
+        <h2 className="mt-3 font-serif text-3xl text-[#123f38] sm:text-4xl">
+          Nous préparons les premières explications pour {petName}.
         </h2>
         <p className="mt-4 max-w-md text-sm leading-6 text-[#6c837d]">
-          Les éléments incertains restent clairement signalés. Aucune conclusion médicale n’est ajoutée.
+          Lorsqu’une ligne n’est pas claire, nous vous le signalons au lieu de l’interpréter.
         </p>
 
         <div className="mt-9 w-full max-w-md space-y-3 text-left">
@@ -165,32 +165,32 @@ export function PublicWizard({ initialPet = null }: { initialPet?: InitialPet | 
   }
 
   const primaryLabel = step === 0
-    ? "Continuer avec ce document"
+    ? "Utiliser ce document"
     : step === 1
-      ? "Continuer vers l’aperçu"
-      : "Voir mon aperçu gratuit";
+      ? "Continuer"
+      : "Afficher mon aperçu gratuit";
 
   return (
     <div>
       {initialPet && (
         <div className="mb-7 flex items-center justify-between gap-4 rounded-2xl border border-[#bcd8ce] bg-[#edf7f3] px-4 py-3.5">
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.13em] text-[#5d8179]">Ajouté à la fiche de</p>
-            <p className="mt-1 text-sm font-extrabold text-[#174f46]">{initialPet.name}</p>
+            <p className="text-[10px] font-semibold uppercase text-[#5d8179]">Ajouté à la fiche de</p>
+            <p className="mt-1 text-sm font-semibold text-[#174f46]">{initialPet.name}</p>
           </div>
-          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[#397268]">Suivi activé</span>
+          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#397268]">Fiche sélectionnée</span>
         </div>
       )}
 
       <div className="flex items-center justify-between gap-3">
         {steps.map((label, index) => (
           <div key={label} className="flex flex-1 items-center gap-2">
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
               index <= step ? "bg-[#0c5b50] text-white" : "bg-[#edf1ef] text-[#8ba09b]"
             }`}>
               {index + 1}
             </span>
-            <span className={`hidden text-xs font-bold sm:block ${index <= step ? "text-[#315f57]" : "text-[#9aaba7]"}`}>
+            <span className={`hidden text-xs font-semibold sm:block ${index <= step ? "text-[#315f57]" : "text-[#9aaba7]"}`}>
               {label}
             </span>
             {index < steps.length - 1 && <span className="ml-auto hidden h-px flex-1 bg-[#dce7e2] sm:block" />}
@@ -201,9 +201,9 @@ export function PublicWizard({ initialPet = null }: { initialPet?: InitialPet | 
       <div className="mt-9">
         {step === 0 && (
           <section>
-            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Étape 1 sur 3</p>
-            <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38] sm:text-4xl">Ajoutez le devis ou la facture.</h2>
-            <p className="mt-3 text-sm leading-6 text-[#6c837d]">Une photo nette ou le PDF transmis par la clinique suffit.</p>
+            <p className="text-xs font-semibold uppercase text-[#5d8179]">Étape 1 sur 3</p>
+            <h2 className="mt-2 font-serif text-3xl text-[#123f38] sm:text-4xl">Ajoutez le document reçu de la clinique.</h2>
+            <p className="mt-3 text-sm leading-6 text-[#6c837d]">Un PDF ou une photo nette conviennent tous les deux.</p>
 
             <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/jpeg,image/png,image/heic" className="hidden" onChange={(event) => selectFile(event.target.files?.[0])} />
             <button
@@ -217,57 +217,57 @@ export function PublicWizard({ initialPet = null }: { initialPet?: InitialPet | 
               className="mt-7 flex w-full flex-col items-center justify-center rounded-[24px] border-2 border-dashed border-[#b9d4ca] bg-[#f5faf8] px-6 py-12 text-center transition hover:border-[#72a998] hover:bg-[#eff8f4]"
             >
               <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#0c5b50] shadow-sm"><FileIcon /></span>
-              <span className="mt-4 text-base font-extrabold text-[#174f46]">{file ? "Choisir un autre document" : "Choisir ou déposer le document"}</span>
-              <span className="mt-1 text-xs text-[#78908a]">PDF, JPG, PNG ou HEIC · 10 Mo maximum</span>
+              <span className="mt-4 text-base font-semibold text-[#174f46]">{file ? "Choisir un autre fichier" : "Choisir un fichier"}</span>
+              <span className="mt-1 text-xs text-[#78908a]">ou déposez-le ici · PDF ou photo · 10 Mo maximum</span>
             </button>
 
             {file && (
               <div className="mt-4 flex items-center justify-between rounded-2xl border border-[#dce9e4] bg-white px-4 py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-[#244f47]">{file.name}</p>
+                  <p className="truncate text-sm font-semibold text-[#244f47]">{file.name}</p>
                   <p className="mt-0.5 text-xs text-[#829791]">{formatFileSize(file.size)}</p>
                 </div>
-                <span className="ml-3 rounded-full bg-[#e6f3ee] px-3 py-1 text-xs font-bold text-[#397268]">Prêt à lire</span>
+                <span className="ml-3 rounded-full bg-[#e6f3ee] px-3 py-1 text-xs font-semibold text-[#397268]">Document ajouté</span>
               </div>
             )}
-            <p className="mt-4 text-center text-xs leading-5 text-[#879a95]">Document privé · Informations sensibles retirées avant l’analyse textuelle</p>
+            <p className="mt-4 text-center text-xs leading-5 text-[#879a95]">Votre document reste privé. Les noms et coordonnées sont retirés avant l’analyse textuelle.</p>
           </section>
         )}
 
         {step === 1 && (
           <section>
-            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Étape 2 sur 3</p>
-            <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38] sm:text-4xl">Parlez-nous simplement de votre animal.</h2>
-            <p className="mt-3 text-sm leading-6 text-[#6c837d]">Son nom suffit pour personnaliser l’aperçu. Les autres précisions sont facultatives.</p>
+            <p className="text-xs font-semibold uppercase text-[#5d8179]">Étape 2 sur 3</p>
+            <h2 className="mt-2 font-serif text-3xl text-[#123f38] sm:text-4xl">Comment s’appelle votre animal ?</h2>
+            <p className="mt-3 text-sm leading-6 text-[#6c837d]">Son nom nous permet de personnaliser l’aperçu. Tout le reste est facultatif.</p>
 
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
               <label className="sm:col-span-2">
-                <span className="text-sm font-bold text-[#315f57]">Nom de votre animal</span>
+                <span className="text-sm font-semibold text-[#315f57]">Nom de votre animal</span>
                 <input value={petName} onChange={(event) => setPetName(event.target.value)} readOnly={Boolean(initialPet)} placeholder="Ex. Nala" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none transition focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea] read-only:bg-[#f2f6f4]" />
               </label>
               <label>
-                <span className="text-sm font-bold text-[#315f57]">Animal</span>
+                <span className="text-sm font-semibold text-[#315f57]">Espèce</span>
                 <select value={species} onChange={(event) => setSpecies(event.target.value as Species)} disabled={Boolean(initialPet)} className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea] disabled:bg-[#f2f6f4]">
                   <option value="chien">Chien</option><option value="chat">Chat</option><option value="autre">Autre</option>
                 </select>
               </label>
               <label>
-                <span className="text-sm font-bold text-[#315f57]">Document</span>
+                <span className="text-sm font-semibold text-[#315f57]">Type de document</span>
                 <select value={documentType} onChange={(event) => setDocumentType(event.target.value as DocumentType)} className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]">
                   <option value="devis">Devis</option><option value="facture">Facture</option>
                 </select>
               </label>
               <label className="sm:col-span-2">
-                <span className="text-sm font-bold text-[#315f57]">Ce que la clinique vous a expliqué <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
+                <span className="text-sm font-semibold text-[#315f57]">Ce que la clinique vous a déjà expliqué <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
                 <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="Ex. intervention prévue la semaine prochaine, avec anesthésie et surveillance…" className="mt-2 w-full resize-none rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]" />
               </label>
               <label className="sm:col-span-2">
-                <span className="text-sm font-bold text-[#315f57]">La question que vous voulez poser en priorité <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
-                <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ex. que comprend exactement la ligne anesthésie ?" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]" />
+                <span className="text-sm font-semibold text-[#315f57]">La question qui vous reste <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
+                <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ex. À quoi correspond exactement la ligne « anesthésie » ?" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]" />
               </label>
               <label className="sm:col-span-2 flex items-start gap-3 rounded-2xl bg-[#fff8f4] px-4 py-3.5 text-sm text-[#715247]">
                 <input type="checkbox" checked={emergency} onChange={(event) => setEmergency(event.target.checked)} className="mt-0.5 h-4 w-4 accent-[#c9684f]" />
-                <span><strong>L’état de mon animal nécessite une réponse rapide.</strong> DevisVéto n’évalue pas l’urgence : contactez directement une clinique et ne retardez pas les soins.</span>
+                <span><strong>La situation vous semble urgente ?</strong> DevisVéto ne peut pas l’évaluer. Contactez directement une clinique et ne retardez pas les soins.</span>
               </label>
             </div>
           </section>
@@ -275,22 +275,22 @@ export function PublicWizard({ initialPet = null }: { initialPet?: InitialPet | 
 
         {step === 2 && (
           <section>
-            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Étape 3 sur 3</p>
-            <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38] sm:text-4xl">Recevez votre aperçu privé.</h2>
-            <p className="mt-3 text-sm leading-6 text-[#6c837d]">Il s’affichera immédiatement. Nous vous enverrons aussi un lien pour le retrouver facilement.</p>
+            <p className="text-xs font-semibold uppercase text-[#5d8179]">Étape 3 sur 3</p>
+            <h2 className="mt-2 font-serif text-3xl text-[#123f38] sm:text-4xl">Où pouvons-nous vous envoyer le lien ?</h2>
+            <p className="mt-3 text-sm leading-6 text-[#6c837d]">L’aperçu s’affichera ici. Vous recevrez aussi un lien par email pour le retrouver plus tard.</p>
 
             <label className="mt-7 block">
-              <span className="text-sm font-bold text-[#315f57]">Votre adresse email</span>
+              <span className="text-sm font-semibold text-[#315f57]">Adresse email</span>
               <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} readOnly={Boolean(initialPet?.email)} placeholder="vous@exemple.fr" className="mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3.5 text-sm outline-none focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea] read-only:bg-[#f2f6f4]" />
             </label>
 
             <div className="mt-5 space-y-3 text-sm leading-6 text-[#5d7771]">
               <label className="flex items-start gap-3 rounded-2xl border border-[#bcd8ce] bg-[#f5faf8] px-4 py-3.5">
                 <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-1 h-4 w-4 accent-[#0c5b50]" />
-                <span>J’autorise DevisVéto à lire ce document pour préparer mon aperçu et mon rapport <strong>(obligatoire)</strong>.</span>
+                <span>J’autorise DevisVéto à lire ce document pour préparer l’aperçu et le rapport <strong>(obligatoire)</strong>.</span>
               </label>
               <details className="rounded-2xl border border-[#e2eae7] px-4 py-3.5">
-                <summary className="cursor-pointer font-bold text-[#45665f]">Aider à améliorer DevisVéto <span className="font-normal text-[#8a9e99]">(facultatif)</span></summary>
+                <summary className="cursor-pointer font-semibold text-[#45665f]">Utiliser des informations anonymisées pour améliorer DevisVéto <span className="font-normal text-[#8a9e99]">(facultatif)</span></summary>
                 <div className="mt-4 space-y-3">
                   <label className="flex items-start gap-3">
                     <input type="checkbox" checked={statisticsConsent} onChange={(event) => setStatisticsConsent(event.target.checked)} className="mt-1 h-4 w-4 accent-[#0c5b50]" />
@@ -311,13 +311,13 @@ export function PublicWizard({ initialPet = null }: { initialPet?: InitialPet | 
 
       <div className="mt-8 flex items-center gap-3">
         {step > 0 && (
-          <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="rounded-full border border-[#cddbd6] px-5 py-3 text-sm font-bold text-[#45665f] hover:bg-[#f1f6f4]">Retour</button>
+          <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="rounded-full border border-[#cddbd6] px-5 py-3 text-sm font-semibold text-[#45665f] hover:bg-[#f1f6f4]">Retour</button>
         )}
-        <button type="button" onClick={step === 2 ? submit : nextStep} className="flex-1 rounded-full bg-[#0c5b50] px-5 py-3.5 text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
+        <button type="button" onClick={step === 2 ? submit : nextStep} className="flex-1 rounded-full bg-[#0c5b50] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
           {primaryLabel}
         </button>
       </div>
-      <p className="mt-4 text-center text-xs leading-5 text-[#879a95]">Première lecture offerte · Rapport complet 8,90 € · DevisVéto Plus 6,90 €/mois</p>
+      <p className="mt-4 text-center text-xs leading-5 text-[#879a95]">Aperçu gratuit · Rapport complet : 8,90 € · DevisVéto Plus : 6,90 €/mois</p>
     </div>
   );
 }
