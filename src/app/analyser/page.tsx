@@ -23,8 +23,8 @@ function CheckIcon() {
 }
 
 export const metadata = {
-  title: "Analyser gratuitement mon devis — DevisVéto",
-  description: "Envoyez votre document et découvrez un aperçu personnalisé avant de choisir votre formule.",
+  title: "Comprendre un document vétérinaire — DevisVéto",
+  description: "Déposez un devis ou une facture vétérinaire et obtenez une première lecture claire et personnalisée.",
 };
 
 export default async function AnalyserPage({
@@ -77,22 +77,22 @@ export default async function AnalyserPage({
         <div className="pointer-events-none absolute left-[-8%] top-[-12%] h-80 w-80 rounded-full bg-[#cfe8df]/75 blur-3xl" />
         <div className="pointer-events-none absolute bottom-[-15%] right-[-6%] h-80 w-80 rounded-full bg-[#f6d0c3]/45 blur-3xl" />
 
-        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
+        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <aside className="pt-3 lg:sticky lg:top-10 lg:pt-8">
-            <div className="inline-flex rounded-full bg-[#e4f1ec] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.13em] text-[#397268]">Aperçu personnalisé gratuit</div>
+            <div className="inline-flex rounded-full bg-[#e4f1ec] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.13em] text-[#397268]">Première lecture offerte</div>
             <h1 className="mt-5 max-w-xl font-serif text-4xl font-semibold leading-[1.08] tracking-[-0.045em] text-[#123f38] sm:text-5xl lg:text-[58px]">
-              Montrez-nous le document. Voyez sa vraie valeur avant de payer.
+              Envoyez le document. Obtenez une première lecture claire.
             </h1>
             <p className="mt-5 max-w-lg text-base leading-8 text-[#647d77]">
-              Nous identifions les prestations, expliquons plusieurs lignes et préparons les premiers points à clarifier. Le document rejoint ensuite le dossier de votre animal.
+              DevisVéto repère les prestations, explique plusieurs lignes et prépare les premières questions utiles à poser à la clinique.
             </p>
 
             <div className="mt-8 space-y-4">
               {[
-                "Deux explications et deux questions visibles gratuitement",
-                "Analyse unique à 8,90 €, sans renouvellement",
-                "DevisVéto Plus à 6,90 €/mois, résiliable à tout moment",
-                "Un dossier et une timeline pour chacun de vos animaux",
+                "Deux explications et deux questions personnalisées",
+                "Aucun diagnostic ni avis sur la nécessité des soins",
+                "Rapport complet relu par une personne",
+                "Une fiche de suivi pour chaque animal",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3 text-sm font-semibold text-[#365f57]">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#0c5b50] shadow-sm"><CheckIcon /></span>
@@ -102,8 +102,8 @@ export default async function AnalyserPage({
             </div>
 
             <div className="mt-9 rounded-2xl border border-[#d8e7e1] bg-white/75 p-5 text-sm leading-6 text-[#647d77]">
-              <p className="font-bold text-[#123f38]">Un service d’explication et d’organisation, pas un avis médical.</p>
-              <p className="mt-1.5">En cas d’urgence, n’attendez pas l’analyse pour faire soigner votre animal.</p>
+              <p className="font-bold text-[#123f38]">Un outil d’explication, pas un avis vétérinaire.</p>
+              <p className="mt-1.5">En cas d’urgence ou de dégradation de l’état de votre animal, contactez directement une clinique.</p>
             </div>
           </aside>
 
