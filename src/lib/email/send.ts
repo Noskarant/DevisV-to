@@ -2,6 +2,7 @@ import "server-only";
 import { sendEmail } from "./resend";
 import {
   documentReceivedTemplate,
+  previewReadyTemplate,
   paymentConfirmedTemplate,
   needsInformationTemplate,
   reportReadyTemplate,
@@ -11,6 +12,14 @@ import {
 
 export function sendDocumentReceivedEmail(to: string, petName: string) {
   return sendEmail(to, "Votre devis a bien été reçu", documentReceivedTemplate(petName));
+}
+
+export function sendPreviewReadyEmail(to: string, petName: string, previewUrl: string) {
+  return sendEmail(
+    to,
+    `Votre aperçu DevisVéto pour ${petName}`,
+    previewReadyTemplate(petName, previewUrl)
+  );
 }
 
 export function sendPaymentConfirmedEmail(to: string, petName: string) {
