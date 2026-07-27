@@ -30,7 +30,7 @@ type Props = {
 
 const inputClass =
   "mt-2 w-full rounded-2xl border border-[#ccdcd6] bg-white px-4 py-3 text-sm text-[#173b35] outline-none transition placeholder:text-[#9aaba7] focus:border-[#65a391] focus:ring-4 focus:ring-[#dff0ea]";
-const labelClass = "text-sm font-extrabold text-[#315f57]";
+const labelClass = "text-sm font-semibold text-[#315f57]";
 
 function Section({
   eyebrow,
@@ -45,8 +45,8 @@ function Section({
 }) {
   return (
     <section className="rounded-[26px] border border-[#dce7e2] bg-white p-5 shadow-[0_14px_40px_rgba(31,78,67,0.06)] sm:p-7">
-      <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">{eyebrow}</p>
-      <h2 className="mt-2 font-serif text-2xl font-semibold tracking-[-0.035em] text-[#123f38]">{title}</h2>
+      <p className="text-[11px] font-semibold uppercase text-[#5d8179]">{eyebrow}</p>
+      <h2 className="mt-2 font-serif text-2xl text-[#123f38]">{title}</h2>
       {description && <p className="mt-2 max-w-2xl text-sm leading-6 text-[#78908a]">{description}</p>}
       <div className="mt-6 grid gap-4 sm:grid-cols-2">{children}</div>
     </section>
@@ -61,9 +61,9 @@ export function PetForm({ pet, action, submitLabel }: Props) {
       {pet?.id && <input type="hidden" name="pet_id" value={pet.id} />}
 
       <Section
-        eyebrow="Pour commencer"
-        title="Qui est votre animal ?"
-        description="Seuls son nom et son espèce sont obligatoires. Renseignez le reste uniquement si vous le connaissez."
+        eyebrow="Informations de base"
+        title="Parlez-nous de votre animal"
+        description="Commencez par son nom et son espèce. Les autres champs peuvent rester vides."
       >
         <label>
           <span className={labelClass}>Nom de votre animal *</span>
@@ -94,47 +94,47 @@ export function PetForm({ pet, action, submitLabel }: Props) {
           </select>
         </label>
         <label>
-          <span className={labelClass}>Stérilisation <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
+          <span className={labelClass}>Stérilisé(e) ? <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
           <select name="sterilized" defaultValue={sterilizedValue} className={inputClass}>
             <option value="unknown">Je ne sais pas</option>
-            <option value="true">Stérilisé</option>
-            <option value="false">Non stérilisé</option>
+            <option value="true">Oui</option>
+            <option value="false">Non</option>
           </select>
         </label>
         <label>
-          <span className={labelClass}>Date de naissance <span className="font-normal text-[#8a9e99]">(si connue)</span></span>
+          <span className={labelClass}>Date de naissance, si vous la connaissez</span>
           <input type="date" name="birth_date" defaultValue={pet?.birth_date ?? ""} className={inputClass} />
         </label>
         <label>
-          <span className={labelClass}>Âge approximatif <span className="font-normal text-[#8a9e99]">(sinon)</span></span>
+          <span className={labelClass}>Âge approximatif, si la date est inconnue</span>
           <input name="approximate_age" maxLength={180} defaultValue={pet?.approximate_age ?? ""} className={inputClass} placeholder="Ex. environ 7 ans" />
         </label>
         <label>
-          <span className={labelClass}>Poids actuel en kg <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
+          <span className={labelClass}>Poids actuel <span className="font-normal text-[#8a9e99]">(kg, facultatif)</span></span>
           <input type="number" min="0.1" max="299" step="0.01" name="weight_kg" defaultValue={pet?.weight_kg ?? ""} className={inputClass} placeholder="Ex. 12,5" />
         </label>
         <label>
-          <span className={labelClass}>Numéro de puce ou tatouage <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
-          <input name="identification_number" maxLength={180} defaultValue={pet?.identification_number ?? ""} className={inputClass} placeholder="À conserver dans sa fiche" />
+          <span className={labelClass}>N° de puce ou de tatouage <span className="font-normal text-[#8a9e99]">(facultatif)</span></span>
+          <input name="identification_number" maxLength={180} defaultValue={pet?.identification_number ?? ""} className={inputClass} placeholder="Ex. 250269…" />
         </label>
       </Section>
 
       <Section
-        eyebrow="Santé et habitudes · facultatif"
-        title="Les informations utiles à garder sous la main"
-        description="Ajoutez uniquement ce que vous connaissez déjà. DevisVéto ne déduit aucun diagnostic à partir de ces informations."
+        eyebrow="Santé et habitudes — facultatif"
+        title="Ce qu’il peut être utile de noter"
+        description="Renseignez seulement ce que vous savez. Ces informations ne servent pas à poser un diagnostic."
       >
         <label className="sm:col-span-2">
           <span className={labelClass}>Allergies ou intolérances connues</span>
           <textarea name="allergies" rows={3} defaultValue={pet?.allergies ?? ""} className={inputClass} placeholder="Ex. allergie déclarée à un médicament, intolérance alimentaire…" />
         </label>
         <label className="sm:col-span-2">
-          <span className={labelClass}>Antécédents importants à retenir</span>
-          <textarea name="chronic_conditions" rows={3} defaultValue={pet?.chronic_conditions ?? ""} className={inputClass} placeholder="Informations déclarées par vous ou déjà présentes dans ses documents." />
+          <span className={labelClass}>Antécédents importants</span>
+          <textarea name="chronic_conditions" rows={3} defaultValue={pet?.chronic_conditions ?? ""} className={inputClass} placeholder="Ex. opération passée, affection connue ou information indiquée par la clinique." />
         </label>
         <label className="sm:col-span-2">
-          <span className={labelClass}>Traitements actuellement indiqués</span>
-          <textarea name="current_treatments" rows={3} defaultValue={pet?.current_treatments ?? ""} className={inputClass} placeholder="Nom, dose et fréquence uniquement si vous les connaissez." />
+          <span className={labelClass}>Traitements en cours</span>
+          <textarea name="current_treatments" rows={3} defaultValue={pet?.current_treatments ?? ""} className={inputClass} placeholder="Ex. nom du traitement, dose et fréquence, si vous les connaissez." />
         </label>
         <label>
           <span className={labelClass}>Alimentation</span>
@@ -147,12 +147,12 @@ export function PetForm({ pet, action, submitLabel }: Props) {
       </Section>
 
       <Section
-        eyebrow="Contacts utiles · facultatif"
+        eyebrow="Contacts — facultatif"
         title="Clinique et assurance"
-        description="Conservez ici les coordonnées que vous souhaitez retrouver rapidement."
+        description="Gardez ici les coordonnées que vous souhaitez retrouver facilement."
       >
         <label>
-          <span className={labelClass}>Vétérinaire ou clinique habituelle</span>
+          <span className={labelClass}>Clinique habituelle</span>
           <input name="veterinarian_name" maxLength={180} defaultValue={pet?.veterinarian_name ?? ""} className={inputClass} placeholder="Nom de la clinique" />
         </label>
         <label>
@@ -165,17 +165,17 @@ export function PetForm({ pet, action, submitLabel }: Props) {
         </label>
         <label>
           <span className={labelClass}>Numéro de contrat</span>
-          <input name="insurance_contract" maxLength={180} defaultValue={pet?.insurance_contract ?? ""} className={inputClass} placeholder="Référence à conserver" />
+          <input name="insurance_contract" maxLength={180} defaultValue={pet?.insurance_contract ?? ""} className={inputClass} placeholder="Ex. contrat n° 123456" />
         </label>
         <label className="sm:col-span-2">
-          <span className={labelClass}>Notes pratiques</span>
-          <textarea name="general_notes" rows={4} defaultValue={pet?.general_notes ?? ""} className={inputClass} placeholder="Tout élément que vous souhaitez retrouver facilement dans sa fiche." />
+          <span className={labelClass}>Autres informations utiles</span>
+          <textarea name="general_notes" rows={4} defaultValue={pet?.general_notes ?? ""} className={inputClass} placeholder="Ex. habitudes en clinique, personne à contacter ou consigne pratique." />
         </label>
       </Section>
 
       <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-[#d6e5df] bg-white/95 p-3 shadow-[0_15px_45px_rgba(18,63,56,0.15)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-        <p className="px-2 text-xs leading-5 text-[#78908a]">Le nom et l’espèce suffisent. Vous pourrez modifier cette fiche à tout moment.</p>
-        <button type="submit" className="shrink-0 rounded-full bg-[#0c5b50] px-6 py-3 text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
+        <p className="px-2 text-xs leading-5 text-[#78908a]">Vous pourrez revenir compléter cette fiche quand vous le souhaitez.</p>
+        <button type="submit" className="shrink-0 rounded-full bg-[#0c5b50] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
           {submitLabel}
         </button>
       </div>
