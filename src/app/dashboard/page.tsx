@@ -1,22 +1,32 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/session";
-import { redirect } from "next/navigation";
-import Link from "next/link";
+import { getBillingSummary, isSubscriptionActive } from "@/lib/billing/entitlements";
+import { BillingPortalButton } from "./billing-portal-button";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Brouillon",
   uploaded: "Document reçu",
-  extraction_pending: "Extraction en cours",
-  extracted: "Extraction terminée",
+  extraction_pending: "Lecture en cours",
+  extracted: "Aperçu disponible",
   payment_pending: "Paiement en attente",
-  paid: "Payé — analyse en cours",
-  review_pending: "Vérification en cours",
-  needs_information: "Information complémentaire nécessaire",
-  approved: "Validé",
+  paid: "Rapport en préparation",
+  review_pending: "Vérification humaine",
+  needs_information: "Informations demandées",
+  approved: "Rapport validé",
   delivered: "Rapport disponible",
-  error: "Erreur",
+  error: "À vérifier",
   refunded: "Remboursé",
 };
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
+}
+
+function speciesLabel(species: string) {
+  return species === "chien" ? "Chien" : species === "chat" ? "Chat" : "Autre animal";
+}
 
 export default async function DashboardPage() {
   let user;
@@ -27,50 +37,206 @@ export default async function DashboardPage() {
   }
 
   const supabase = await createClient();
-  const { data: cases } = await supabase
-    .from("cases")
-    .select("id, status, created_at, pets(name)")
-    .eq("user_id", user!.id)
-    .order("created_at", { ascending: false });
+  const [{ data: pets }, { data: cases }, { data: reminders }, billing] = await Promise.all([
+    supabase
+      .from("pets")
+      .select("id, name, species, breed, birth_date, approximate_age, weight_kg, color, archived_at")
+      .eq("user_id", user.id)
+      .is("archived_at", null)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("cases")
+      .select("id, pet_id, status, document_type, detected_total_amount, currency, created_at, pets(name)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("pet_reminders")
+      .select("id, pet_id, title, due_date, completed_at, pets(name)")
+      .eq("user_id", user.id)
+      .is("completed_at", null)
+      .gte("due_date", new Date().toISOString().slice(0, 10))
+      .order("due_date", { ascending: true })
+      .limit(5),
+    getBillingSummary(user.id),
+  ]);
+
+  const subscriptionActive = isSubscriptionActive(billing.subscription?.status);
+  const casesByPet = new Map<string, NonNullable<typeof cases>>();
+  for (const item of cases ?? []) {
+    if (!item.pet_id) continue;
+    const current = casesByPet.get(item.pet_id) ?? [];
+    current.push(item);
+    casesByPet.set(item.pet_id, current);
+  }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">Mes dossiers</h1>
-        <Link
-          href="/dashboard/nouveau-dossier"
-          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white"
-        >
-          Nouveau dossier
-        </Link>
-      </div>
-
-      {!cases?.length && (
-        <p className="mt-8 text-sm text-slate-500">
-          Vous n&apos;avez pas encore de dossier. Envoyez votre premier devis.
-        </p>
-      )}
-
-      <div className="mt-6 space-y-3">
-        {cases?.map((c) => (
-          <Link
-            key={c.id}
-            href={`/dashboard/dossiers/${c.id}`}
-            className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 hover:border-slate-300"
-          >
+    <main className="min-h-screen bg-[#f4f7f4] px-5 py-8 text-[#173b35] sm:px-8 sm:py-12">
+      <div className="mx-auto max-w-7xl">
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0c5b50] text-lg font-black text-white">DV</span>
             <div>
-              <p className="text-sm font-medium text-slate-900">
-                {(c.pets as unknown as { name: string } | null)?.name ?? "Animal"}
-              </p>
-              <p className="text-xs text-slate-500">
-                {new Date(c.created_at).toLocaleDateString("fr-FR")}
-              </p>
+              <p className="text-lg font-extrabold tracking-[-0.035em] text-[#123f38]">DevisVéto</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#78908a]">Espace animaux</p>
             </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
-              {STATUS_LABELS[c.status] ?? c.status}
-            </span>
           </Link>
-        ))}
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard/parametres" className="rounded-full border border-[#cddbd6] bg-white px-4 py-2.5 text-sm font-extrabold text-[#45665f] hover:bg-[#f1f6f4]">
+              Paramètres
+            </Link>
+            <Link href="/dashboard/animaux/nouveau" className="rounded-full bg-[#0c5b50] px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] hover:bg-[#084d44]">
+              Ajouter un animal
+            </Link>
+          </div>
+        </header>
+
+        <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+          <div className="rounded-[30px] bg-[#123f38] px-6 py-8 text-white shadow-[0_24px_70px_rgba(18,63,56,0.18)] sm:px-9">
+            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#9fcfc1]">Votre espace familial</p>
+            <h1 className="mt-3 max-w-3xl font-serif text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
+              Chaque animal a son dossier. Chaque document reste facile à retrouver.
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#c4d7d2]">
+              Devis, factures, informations déclarées, poids et rappels sont organisés dans une timeline dédiée à chacun de vos animaux.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/analyser" className="rounded-full bg-white px-5 py-3 text-sm font-extrabold text-[#123f38] hover:bg-[#eef5f2]">
+                Analyser un nouveau document
+              </Link>
+              <span className="rounded-full bg-white/10 px-5 py-3 text-sm font-bold text-[#d5e4e0]">
+                {pets?.length ?? 0} animal{(pets?.length ?? 0) > 1 ? "aux" : ""} · {cases?.length ?? 0} document{(cases?.length ?? 0) > 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+
+          <div className={`rounded-[30px] border p-6 shadow-[0_18px_50px_rgba(31,78,67,0.09)] ${subscriptionActive ? "border-[#acd1c5] bg-[#eaf5f1]" : "border-[#dce7e2] bg-white"}`}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">DevisVéto Plus</p>
+                <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">
+                  {subscriptionActive ? "Abonnement actif" : "6,90 € par mois"}
+                </h2>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-[#397268] shadow-sm">
+                {billing.creditBalance}/3 crédit{billing.creditBalance > 1 ? "s" : ""}
+              </span>
+            </div>
+
+            {subscriptionActive ? (
+              <>
+                <p className="mt-4 text-sm leading-6 text-[#526f68]">
+                  Un crédit est ajouté à chaque renouvellement et se cumule jusqu’à trois. Vos animaux partagent la même réserve.
+                </p>
+                {billing.subscription?.current_period_end && (
+                  <p className="mt-3 text-xs font-bold text-[#78908a]">
+                    Prochain renouvellement : {formatDate(billing.subscription.current_period_end)}
+                    {billing.subscription.cancel_at_period_end ? " · résiliation programmée" : ""}
+                  </p>
+                )}
+                <div className="mt-5"><BillingPortalButton /></div>
+              </>
+            ) : (
+              <>
+                <ul className="mt-4 space-y-2 text-sm font-semibold leading-6 text-[#526f68]">
+                  <li>✓ Cette analyse incluse à l’inscription</li>
+                  <li>✓ 1 nouveau crédit chaque mois</li>
+                  <li>✓ Crédits cumulables jusqu’à 3</li>
+                  <li>✓ Tous les animaux du foyer</li>
+                </ul>
+                <p className="mt-5 text-xs leading-5 text-[#78908a]">L’abonnement est proposé après votre aperçu gratuit. Résiliable à tout moment.</p>
+              </>
+            )}
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Mes animaux</p>
+              <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Leurs dossiers personnels</h2>
+            </div>
+            <Link href="/dashboard/animaux/nouveau" className="text-sm font-extrabold text-[#0c5b50]">+ Créer un dossier</Link>
+          </div>
+
+          {!pets?.length ? (
+            <div className="mt-6 rounded-[26px] border-2 border-dashed border-[#c9ddd6] bg-white/60 px-6 py-12 text-center">
+              <p className="font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Commencez par créer le dossier de votre animal.</p>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#6c837d]">Vous pourrez y centraliser ses informations, ses documents, ses mesures de poids et ses rappels.</p>
+              <Link href="/dashboard/animaux/nouveau" className="mt-6 inline-flex rounded-full bg-[#0c5b50] px-5 py-3 text-sm font-extrabold text-white">Ajouter mon premier animal</Link>
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {pets.map((pet) => {
+                const petCases = casesByPet.get(pet.id) ?? [];
+                const latest = petCases[0];
+                return (
+                  <Link key={pet.id} href={`/dashboard/animaux/${pet.id}`} className="group rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.06)] transition hover:-translate-y-1 hover:border-[#9fc9bc] hover:shadow-[0_20px_55px_rgba(31,78,67,0.12)]">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e7f3ee] text-2xl">{pet.species === "chien" ? "🐕" : pet.species === "chat" ? "🐈" : "🐾"}</div>
+                      <span className="rounded-full bg-[#f2f6f4] px-3 py-1 text-[11px] font-extrabold text-[#5d8179]">{petCases.length} document{petCases.length > 1 ? "s" : ""}</span>
+                    </div>
+                    <h3 className="mt-5 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38] group-hover:text-[#0c5b50]">{pet.name}</h3>
+                    <p className="mt-1 text-sm font-semibold text-[#78908a]">{[speciesLabel(pet.species), pet.breed].filter(Boolean).join(" · ")}</p>
+                    <div className="mt-5 grid grid-cols-2 gap-2">
+                      <div className="rounded-xl bg-[#f5f8f7] px-3 py-2.5">
+                        <p className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#8a9e99]">Poids</p>
+                        <p className="mt-1 text-sm font-extrabold text-[#315f57]">{pet.weight_kg ? `${Number(pet.weight_kg)} kg` : "À renseigner"}</p>
+                      </div>
+                      <div className="rounded-xl bg-[#f5f8f7] px-3 py-2.5">
+                        <p className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#8a9e99]">Dernier suivi</p>
+                        <p className="mt-1 truncate text-sm font-extrabold text-[#315f57]">{latest ? STATUS_LABELS[latest.status] ?? latest.status : "Aucun document"}</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <div className="mt-8 grid gap-7 lg:grid-cols-2">
+          <section className="rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.06)]">
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Documents récents</p>
+            <h2 className="mt-2 font-serif text-2xl font-semibold tracking-[-0.035em] text-[#123f38]">Dernières analyses</h2>
+            <div className="mt-5 space-y-3">
+              {(cases ?? []).slice(0, 5).map((item) => {
+                const relation = item.pets as unknown as { name: string } | Array<{ name: string }> | null;
+                const petName = Array.isArray(relation) ? relation[0]?.name : relation?.name;
+                return (
+                  <Link key={item.id} href={`/dashboard/dossiers/${item.id}`} className="flex items-center justify-between gap-4 rounded-2xl border border-[#e0e9e6] px-4 py-3 hover:border-[#a9cec2]">
+                    <div>
+                      <p className="text-sm font-extrabold text-[#315f57]">{petName || "Animal"} · {item.document_type === "facture" ? "Facture" : "Devis"}</p>
+                      <p className="mt-1 text-xs text-[#78908a]">{formatDate(item.created_at)}</p>
+                    </div>
+                    <span className="rounded-full bg-[#edf6f2] px-3 py-1.5 text-[11px] font-extrabold text-[#397268]">{STATUS_LABELS[item.status] ?? item.status}</span>
+                  </Link>
+                );
+              })}
+              {!cases?.length && <p className="text-sm text-[#78908a]">Aucun document analysé pour le moment.</p>}
+            </div>
+          </section>
+
+          <section className="rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.06)]">
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">À venir</p>
+            <h2 className="mt-2 font-serif text-2xl font-semibold tracking-[-0.035em] text-[#123f38]">Prochains rappels</h2>
+            <div className="mt-5 space-y-3">
+              {(reminders ?? []).map((reminder) => {
+                const relation = reminder.pets as unknown as { name: string } | Array<{ name: string }> | null;
+                const petName = Array.isArray(relation) ? relation[0]?.name : relation?.name;
+                return (
+                  <Link key={reminder.id} href={`/dashboard/animaux/${reminder.pet_id}`} className="flex items-center justify-between gap-4 rounded-2xl border border-[#e0e9e6] px-4 py-3 hover:border-[#a9cec2]">
+                    <div>
+                      <p className="text-sm font-extrabold text-[#315f57]">{reminder.title}</p>
+                      <p className="mt-1 text-xs text-[#78908a]">{petName || "Animal"}</p>
+                    </div>
+                    <span className="text-xs font-extrabold text-[#9b664e]">{formatDate(reminder.due_date)}</span>
+                  </Link>
+                );
+              })}
+              {!reminders?.length && <p className="text-sm text-[#78908a]">Aucun rappel programmé.</p>}
+            </div>
+          </section>
+        </div>
       </div>
     </main>
   );
