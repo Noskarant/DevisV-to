@@ -15,6 +15,9 @@ type GeneratePreviewInput = {
   primaryQuestion?: string;
 };
 
+type JsonRecord = Record<string, unknown>;
+
+const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
 const SAFE_PRICE_CONTEXT =
   "Il n’est pas possible de conclure de manière fiable si le montant est élevé sans connaître le contexte médical et le détail exact des prestations. Le rapport explique les postes présents et les informations à faire préciser.";
 
@@ -93,6 +96,14 @@ function buildFallbackPreview(input: GeneratePreviewInput): PreviewPayload {
   };
 }
 
+function isDevelopmentMockEnabled() {
+  return process.env.NODE_ENV !== "production" && process.env.MOCK_MODE === "true";
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function extractJson(text: string) {
   const trimmed = text.trim();
   const withoutFence = trimmed
@@ -106,9 +117,69 @@ function extractJson(text: string) {
 }
 
 function normalizeAmount(raw: string) {
-  const normalized = raw.replace(/[\s.](?=\d{3}(?:\D|$))/g, "").replace(",", ".");
+  const compact = raw.replace(/[^\d,.-]/g, "").trim();
+  if (!compact) return null;
+
+  const commaIndex = compact.lastIndexOf(",");
+  const dotIndex = compact.lastIndexOf(".");
+  let normalized = compact;
+
+  if (commaIndex >= 0 && dotIndex >= 0) {
+    const decimalSeparator = commaIndex > dotIndex ? "," : ".";
+    const thousandsSeparator = decimalSeparator === "," ? "." : ",";
+    normalized = compact.split(thousandsSeparator).join("");
+    if (decimalSeparator === ",") normalized = normalized.replace(",", ".");
+  } else if (commaIndex >= 0) {
+    normalized = compact.replace(",", ".");
+  }
+
   const value = Number(normalized);
   return Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
+}
+
+function coerceNullableAmount(value: unknown): unknown {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
+  }
+  if (typeof value === "string") return normalizeAmount(value);
+  return value;
+}
+
+function normalizeCurrency(value: unknown) {
+  if (typeof value !== "string") return value;
+  const normalized = value.trim().toUpperCase();
+  const aliases: Record<string, string> = {
+    "€": "EUR",
+    EURO: "EUR",
+    EUROS: "EUR",
+    "$": "USD",
+    "£": "GBP",
+  };
+  return aliases[normalized] ?? normalized;
+}
+
+function normalizeGeneratedCandidate(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+
+  const lines = Array.isArray(value.lines)
+    ? value.lines.map((line) =>
+        isRecord(line)
+          ? {
+              ...line,
+              amount: coerceNullableAmount(line.amount),
+              clarification: line.clarification ?? null,
+            }
+          : line
+      )
+    : value.lines;
+
+  return {
+    ...value,
+    total_amount: coerceNullableAmount(value.total_amount),
+    currency: normalizeCurrency(value.currency),
+    lines,
+  };
 }
 
 function extractDocumentAmounts(text: string) {
@@ -200,7 +271,10 @@ function validateAndSanitizePreview(
   return {
     ...preview,
     total_amount: totalAmount,
-    summary: sanitizeNarrative(preview.summary, "Le document a été lu et ses principales prestations ont été organisées pour faciliter votre échange avec la clinique."),
+    summary: sanitizeNarrative(
+      preview.summary,
+      "Le document a été lu et ses principales prestations ont été organisées pour faciliter votre échange avec la clinique."
+    ),
     lines,
     clarifications: preview.clarifications.map((item) =>
       sanitizeNarrative(item, "Demandez à la clinique de préciser ce qui est inclus dans cette prestation.")
@@ -217,19 +291,19 @@ function validateAndSanitizePreview(
 }
 
 const requestedShape = {
-  intervention: "type d’intervention ou objet principal du document, sans inventer",
-  total_amount: "nombre ou null",
-  currency: "EUR ou devise réellement indiquée",
+  intervention: "objet principal du document, sans inventer",
+  total_amount: null,
+  currency: "EUR",
   summary: "résumé clair en 2 à 4 phrases",
   categories: ["catégories réellement présentes"],
   lines: [
     {
       original_label: "libellé exact ou très fidèle",
       category: "catégorie simple",
-      amount: "nombre ou null",
+      amount: null,
       explanation: "explication compréhensible et prudente",
-      confidence: "high | medium | low",
-      clarification: "question ou précision nécessaire, ou null",
+      confidence: "high",
+      clarification: null,
     },
   ],
   clarifications: ["points concrets à faire préciser"],
@@ -242,6 +316,33 @@ const requestedShape = {
   warnings: ["limites et urgence éventuelle"],
 };
 
+function compactProviderError(raw: string) {
+  const compact = raw.replace(/\s+/g, " ").trim().slice(0, 700);
+  if (!compact) return "empty provider response";
+
+  try {
+    const parsed = JSON.parse(compact) as {
+      message?: unknown;
+      error?: { message?: unknown; code?: unknown; type?: unknown } | string;
+    };
+    const nested = typeof parsed.error === "object" && parsed.error !== null ? parsed.error : null;
+    return JSON.stringify({
+      message:
+        typeof nested?.message === "string"
+          ? nested.message
+          : typeof parsed.message === "string"
+            ? parsed.message
+            : typeof parsed.error === "string"
+              ? parsed.error
+              : undefined,
+      code: nested && typeof nested.code === "string" ? nested.code : undefined,
+      type: nested && typeof nested.type === "string" ? nested.type : undefined,
+    });
+  } catch {
+    return compact;
+  }
+}
+
 async function generateWithDeepSeek(input: {
   anonymizedDocument: string;
   safeContext: string;
@@ -250,9 +351,13 @@ async function generateWithDeepSeek(input: {
   documentType: GeneratePreviewInput["documentType"];
   emergencyContext: boolean;
 }) {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) return null;
+  const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
+  if (!apiKey) {
+    console.error("[PREVIEW] DEEPSEEK_API_KEY is missing");
+    return null;
+  }
 
+  const model = process.env.DEEPSEEK_MODEL?.trim() || DEFAULT_DEEPSEEK_MODEL;
   const systemPrompt = `Tu analyses uniquement le texte OCR anonymisé d’un devis ou d’une facture vétérinaire afin d’en expliquer le contenu à un propriétaire d’animal.
 Réponds exclusivement avec un objet JSON valide.
 Règles absolues :
@@ -262,6 +367,9 @@ Règles absolues :
 - n’accuse jamais une clinique de surfacturation ;
 - n’invente aucune ligne, aucun montant ni aucune prestation ;
 - conserve fidèlement les montants réellement présents ;
+- crée une entrée dans « lines » pour chaque prestation tarifée lisible du document ;
+- n’ajoute jamais le contexte utilisateur ou sa question comme fausse ligne du document ;
+- total_amount et chaque amount doivent être des nombres JSON, jamais des chaînes de caractères ;
 - distingue ce qui est lisible de ce qui est incertain ;
 - traite les marqueurs entre crochets comme des informations volontairement masquées ;
 - ne tente jamais de reconstruire une identité masquée ;
@@ -281,7 +389,7 @@ Règles absolues :
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.DEEPSEEK_MODEL ?? "deepseek-v4-flash",
+        model,
         thinking: { type: "disabled" },
         temperature: 0.1,
         max_tokens: 3500,
@@ -290,7 +398,7 @@ Règles absolues :
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Espèce : ${input.species}.\nType de document : ${input.documentType}.\nUrgence déclarée : ${input.emergencyContext ? "oui" : "non"}.\nContexte anonymisé : ${input.safeContext || "non renseigné"}.\nQuestion anonymisée : ${input.safeQuestion || "non renseignée"}.\n\nTexte OCR anonymisé :\n${input.anonymizedDocument}\n\nRetourne exactement cette structure JSON :\n${JSON.stringify(requestedShape)}`,
+            content: `Espèce : ${input.species}.\nType de document : ${input.documentType}.\nUrgence déclarée : ${input.emergencyContext ? "oui" : "non"}.\nContexte anonymisé : ${input.safeContext || "non renseigné"}.\nQuestion anonymisée : ${input.safeQuestion || "non renseignée"}.\n\nTexte OCR anonymisé :\n${input.anonymizedDocument}\n\nRetourne un objet JSON suivant exactement cette structure. Remplace les exemples par les informations du document et conserve null lorsqu’une valeur n’est pas lisible :\n${JSON.stringify(requestedShape)}`,
           },
         ],
       }),
@@ -298,36 +406,64 @@ Règles absolues :
     });
 
     if (!response.ok) {
-      console.error("[PREVIEW] DeepSeek request failed", response.status);
+      const providerBody = await response.text();
+      console.error("[PREVIEW] DeepSeek request failed", {
+        status: response.status,
+        model,
+        requestId: response.headers.get("x-request-id") ?? response.headers.get("request-id"),
+        providerError: compactProviderError(providerBody),
+      });
       return null;
     }
 
     const payload = (await response.json()) as {
       choices?: Array<{
+        finish_reason?: string | null;
         message?: {
           content?: string | null;
           reasoning_content?: string | null;
         };
       }>;
     };
-    const content = payload.choices?.[0]?.message?.content;
-    if (!content) return null;
-
-    const parsed = previewSchema.safeParse(extractJson(content));
-    if (!parsed.success) {
-      console.error(
-        "[PREVIEW] Invalid DeepSeek response",
-        parsed.error.issues.map((issue) => issue.path.join("."))
-      );
+    const choice = payload.choices?.[0];
+    const content = choice?.message?.content;
+    if (!content?.trim()) {
+      console.error("[PREVIEW] DeepSeek returned empty content", {
+        model,
+        finishReason: choice?.finish_reason ?? null,
+      });
       return null;
     }
 
+    const candidate = normalizeGeneratedCandidate(extractJson(content));
+    const parsed = previewSchema.safeParse(candidate);
+    if (!parsed.success) {
+      console.error("[PREVIEW] Invalid DeepSeek response", {
+        model,
+        finishReason: choice?.finish_reason ?? null,
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          code: issue.code,
+          message: issue.message,
+        })),
+      });
+      return null;
+    }
+
+    console.info("[PREVIEW] DeepSeek completed", {
+      model,
+      finishReason: choice?.finish_reason ?? null,
+      lineCount: parsed.data.lines.length,
+      totalAmount: parsed.data.total_amount,
+    });
+
     return parsed.data;
   } catch (error) {
-    console.error(
-      "[PREVIEW] DeepSeek generation failed",
-      error instanceof Error ? error.name : "unknown"
-    );
+    console.error("[PREVIEW] DeepSeek generation failed", {
+      model,
+      errorName: error instanceof Error ? error.name : "unknown",
+      errorMessage: error instanceof Error ? error.message : "unknown",
+    });
     return null;
   } finally {
     clearTimeout(timeout);
@@ -335,11 +471,19 @@ Règles absolues :
 }
 
 export async function generatePreview(input: GeneratePreviewInput): Promise<PreviewPayload> {
+  const mockEnabled = isDevelopmentMockEnabled();
   const ocr = await extractDocumentText({
     fileBuffer: input.fileBuffer,
     mimeType: input.mimeType,
   });
-  if (!ocr) return buildFallbackPreview(input);
+
+  if (!ocr) {
+    if (mockEnabled) {
+      console.warn("[PREVIEW] Development fallback used after OCR failure");
+      return buildFallbackPreview(input);
+    }
+    throw new Error("PIPELINE_OCR_FAILED");
+  }
 
   const anonymizedDocument = anonymizeDocumentText(ocr.text, input.petName);
   const safeContext = anonymizeFreeText(input.userDescription ?? "", input.petName);
@@ -353,7 +497,14 @@ export async function generatePreview(input: GeneratePreviewInput): Promise<Prev
     documentType: input.documentType,
     emergencyContext: input.emergencyContext,
   });
-  if (!generated) return buildFallbackPreview(input);
+
+  if (!generated) {
+    if (mockEnabled) {
+      console.warn("[PREVIEW] Development fallback used after DeepSeek failure");
+      return buildFallbackPreview(input);
+    }
+    throw new Error("PIPELINE_DEEPSEEK_FAILED");
+  }
 
   const validated = validateAndSanitizePreview(
     generated,
@@ -366,11 +517,13 @@ export async function generatePreview(input: GeneratePreviewInput): Promise<Prev
     ocrProvider: ocr.provider,
     ocrModel: ocr.model,
     pageCount: ocr.pageCount,
+    lineCount: validated.lines.length,
+    totalAmount: validated.total_amount,
     redactionCount:
       anonymizedDocument.redactionCount +
       safeContext.redactionCount +
       safeQuestion.redactionCount,
-    deepseekModel: process.env.DEEPSEEK_MODEL ?? "deepseek-v4-flash",
+    deepseekModel: process.env.DEEPSEEK_MODEL?.trim() || DEFAULT_DEEPSEEK_MODEL,
     thinkingMode: "disabled",
   });
 
