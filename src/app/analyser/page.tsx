@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { PublicWizard } from "./public-wizard";
 
 function BrandMark() {
@@ -23,10 +24,40 @@ function CheckIcon() {
 
 export const metadata = {
   title: "Analyser gratuitement mon devis — DevisVéto",
-  description: "Envoyez votre document et découvrez un aperçu personnalisé avant de choisir le rapport complet.",
+  description: "Envoyez votre document et découvrez un aperçu personnalisé avant de choisir votre formule.",
 };
 
-export default function AnalyserPage() {
+export default async function AnalyserPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pet_id?: string }>;
+}) {
+  const { pet_id: petId } = await searchParams;
+  let initialPet: { id: string; name: string; species: "chien" | "chat" | "autre"; email?: string | null } | null = null;
+
+  if (petId) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: pet } = await supabase
+        .from("pets")
+        .select("id, name, species")
+        .eq("id", petId)
+        .eq("user_id", user.id)
+        .is("archived_at", null)
+        .maybeSingle();
+
+      if (pet) {
+        initialPet = {
+          id: pet.id,
+          name: pet.name,
+          species: pet.species,
+          email: user.email,
+        };
+      }
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f4f7f4] text-[#173b35]">
       <header className="border-b border-[#dce7e2] bg-white/95">
@@ -38,9 +69,7 @@ export default function AnalyserPage() {
               <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#6a857f]">Votre devis, en clair</p>
             </div>
           </Link>
-          <Link href="/connexion" className="text-sm font-bold text-[#45665f] hover:text-[#0c5b50]">
-            Mon espace
-          </Link>
+          <Link href="/dashboard" className="text-sm font-bold text-[#45665f] hover:text-[#0c5b50]">Mon espace</Link>
         </div>
       </header>
 
@@ -50,40 +79,36 @@ export default function AnalyserPage() {
 
         <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
           <aside className="pt-3 lg:sticky lg:top-10 lg:pt-8">
-            <div className="inline-flex rounded-full bg-[#e4f1ec] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.13em] text-[#397268]">
-              Aperçu personnalisé gratuit
-            </div>
+            <div className="inline-flex rounded-full bg-[#e4f1ec] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.13em] text-[#397268]">Aperçu personnalisé gratuit</div>
             <h1 className="mt-5 max-w-xl font-serif text-4xl font-semibold leading-[1.08] tracking-[-0.045em] text-[#123f38] sm:text-5xl lg:text-[58px]">
               Montrez-nous le document. Voyez sa vraie valeur avant de payer.
             </h1>
             <p className="mt-5 max-w-lg text-base leading-8 text-[#647d77]">
-              Nous identifions les prestations, expliquons plusieurs lignes et préparons les premiers points à clarifier. Vous choisissez ensuite de débloquer ou non le rapport complet.
+              Nous identifions les prestations, expliquons plusieurs lignes et préparons les premiers points à clarifier. Le document rejoint ensuite le dossier de votre animal.
             </p>
 
             <div className="mt-8 space-y-4">
               {[
-                "Aucune création de compte avant l’aperçu",
                 "Deux explications et deux questions visibles gratuitement",
-                "Rapport complet à 6,90 €, paiement unique",
-                "Aucun abonnement ni renouvellement automatique",
+                "Analyse unique à 8,90 €, sans renouvellement",
+                "DevisVéto Plus à 6,90 €/mois, résiliable à tout moment",
+                "Un dossier et une timeline pour chacun de vos animaux",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3 text-sm font-semibold text-[#365f57]">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#0c5b50] shadow-sm">
-                    <CheckIcon />
-                  </span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#0c5b50] shadow-sm"><CheckIcon /></span>
                   {item}
                 </div>
               ))}
             </div>
 
             <div className="mt-9 rounded-2xl border border-[#d8e7e1] bg-white/75 p-5 text-sm leading-6 text-[#647d77]">
-              <p className="font-bold text-[#123f38]">Un service d’explication, pas un avis médical.</p>
+              <p className="font-bold text-[#123f38]">Un service d’explication et d’organisation, pas un avis médical.</p>
               <p className="mt-1.5">En cas d’urgence, n’attendez pas l’analyse pour faire soigner votre animal.</p>
             </div>
           </aside>
 
           <div className="rounded-[30px] border border-white bg-white p-5 shadow-[0_28px_80px_rgba(31,78,67,0.13)] sm:p-8 lg:p-10">
-            <PublicWizard />
+            <PublicWizard initialPet={initialPet} />
           </div>
         </div>
       </section>
