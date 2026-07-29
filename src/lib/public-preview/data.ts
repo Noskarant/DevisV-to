@@ -70,27 +70,13 @@ export async function loadPublicPreview(token: string) {
   ]);
   if (!caseRow) return null;
 
-  const report = reports?.[0] ?? null;
-  const [{ data: reviews }, comparison] = await Promise.all([
-    report
-      ? supabase
-          .from("report_reviews")
-          .select("id, status, review_notes, reviewed_at, created_at")
-          .eq("report_id", report.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-      : Promise.resolve({ data: [] }),
-    loadComparisonData(caseRow.comparison_case_id),
-  ]);
-
   return {
     caseRow,
     items: items ?? [],
-    report,
+    report: reports?.[0] ?? null,
     payment: payments?.[0] ?? null,
     document: documents?.[0] ?? null,
-    review: reviews?.[0] ?? null,
-    comparison,
+    comparison: await loadComparisonData(caseRow.comparison_case_id),
   };
 }
 
