@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 
 const optionalText = z.string().trim().max(2500).optional().transform((value) => value || null);
 const optionalShortText = z.string().trim().max(180).optional().transform((value) => value || null);
+const PHOTO_MAX_SIZE = 5 * 1024 * 1024;
+const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const petSchema = z.object({
   name: z.string().trim().min(1, "Le prénom est obligatoire.").max(80),
@@ -65,10 +67,39 @@ function formObject(formData: FormData) {
   );
 }
 
+function readPhoto(formData: FormData) {
+  const value = formData.get("photo");
+  if (!(value instanceof File) || value.size === 0) return null;
+  if (value.size > PHOTO_MAX_SIZE) throw new Error("La photo doit faire moins de 5 Mo.");
+  if (!PHOTO_TYPES.has(value.type)) throw new Error("Utilisez une photo JPG, PNG ou WebP.");
+  return value;
+}
+
+function photoExtension(file: File) {
+  if (file.type === "image/png") return "png";
+  if (file.type === "image/webp") return "webp";
+  return "jpg";
+}
+
+async function uploadPhoto(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  petId: string,
+  file: File
+) {
+  const path = `${userId}/${petId}/${crypto.randomUUID()}.${photoExtension(file)}`;
+  const { error } = await supabase.storage
+    .from("pet-photos")
+    .upload(path, Buffer.from(await file.arrayBuffer()), { contentType: file.type, upsert: false });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
 export async function createPetAction(formData: FormData) {
   const user = await requireUser();
   const parsed = petSchema.safeParse(formObject(formData));
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Informations invalides.");
+  const photo = readPhoto(formData);
 
   const supabase = await createClient();
   const { data: pet, error } = await supabase
@@ -78,14 +109,32 @@ export async function createPetAction(formData: FormData) {
     .single();
   if (error || !pet) throw new Error(error?.message ?? "Animal non créé.");
 
-  if (parsed.data.weight_kg) {
-    await supabase.from("pet_weight_entries").insert({
-      user_id: user.id,
-      pet_id: pet.id,
-      weight_kg: parsed.data.weight_kg,
-      recorded_at: new Date().toISOString().slice(0, 10),
-      notes: "Poids renseigné à la création du dossier",
-    });
+  try {
+    if (photo) {
+      const photoPath = await uploadPhoto(supabase, user.id, pet.id, photo);
+      const { error: photoUpdateError } = await supabase
+        .from("pets")
+        .update({ photo_path: photoPath, updated_at: new Date().toISOString() })
+        .eq("id", pet.id)
+        .eq("user_id", user.id);
+      if (photoUpdateError) {
+        await supabase.storage.from("pet-photos").remove([photoPath]);
+        throw new Error(photoUpdateError.message);
+      }
+    }
+
+    if (parsed.data.weight_kg) {
+      await supabase.from("pet_weight_entries").insert({
+        user_id: user.id,
+        pet_id: pet.id,
+        weight_kg: parsed.data.weight_kg,
+        recorded_at: new Date().toISOString().slice(0, 10),
+        notes: "Poids renseigné à la création du dossier",
+      });
+    }
+  } catch (caught) {
+    await supabase.from("pets").delete().eq("id", pet.id).eq("user_id", user.id);
+    throw caught;
   }
 
   redirect(`/dashboard/animaux/${pet.id}`);
@@ -98,14 +147,40 @@ export async function updatePetAction(formData: FormData) {
 
   const parsed = petSchema.safeParse(formObject(formData));
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Informations invalides.");
+  const photo = readPhoto(formData);
+  const removePhoto = String(formData.get("remove_photo") ?? "") === "true";
 
   const supabase = await createClient();
+  const { data: ownedPet } = await supabase
+    .from("pets")
+    .select("id, photo_path")
+    .eq("id", petId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!ownedPet) throw new Error("Animal introuvable.");
+
+  let nextPhotoPath = ownedPet.photo_path as string | null;
+  let uploadedPath: string | null = null;
+  if (photo) {
+    uploadedPath = await uploadPhoto(supabase, user.id, petId, photo);
+    nextPhotoPath = uploadedPath;
+  } else if (removePhoto) {
+    nextPhotoPath = null;
+  }
+
   const { error } = await supabase
     .from("pets")
-    .update({ ...parsed.data, updated_at: new Date().toISOString() })
+    .update({ ...parsed.data, photo_path: nextPhotoPath, updated_at: new Date().toISOString() })
     .eq("id", petId)
     .eq("user_id", user.id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (uploadedPath) await supabase.storage.from("pet-photos").remove([uploadedPath]);
+    throw new Error(error.message);
+  }
+
+  if (ownedPet.photo_path && ownedPet.photo_path !== nextPhotoPath) {
+    await supabase.storage.from("pet-photos").remove([ownedPet.photo_path]);
+  }
 
   revalidatePath(`/dashboard/animaux/${petId}`);
   revalidatePath("/dashboard");

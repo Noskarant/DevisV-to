@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Onest, Source_Sans_3 } from "next/font/google";
+import { GlobalAccountBar } from "@/components/global-account-bar";
 import "./globals.css";
 
 const onest = Onest({
@@ -55,7 +56,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${onest.variable} ${sourceSans.variable} h-full antialiased`}>
-      <body className="min-h-full bg-[#fbfaf6] font-sans text-[#173b35]">{children}</body>
+      <body className="min-h-full bg-[#fbfaf6] font-sans text-[#173b35]">
+        <GlobalAccountBar />
+        {children}
+      </body>
     </html>
   );
 }

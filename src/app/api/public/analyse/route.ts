@@ -39,6 +39,20 @@ function safeExtension(filename: string) {
   return extension || "bin";
 }
 
+function readableFilename(filename: string) {
+  return filename
+    .replace(/\.[^.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function documentTitle(documentType: "devis" | "facture", intervention: string | null | undefined, filename: string) {
+  const prefix = documentType === "facture" ? "Facture" : "Devis";
+  const subject = intervention?.trim() || readableFilename(filename) || "Document vétérinaire";
+  return `${prefix} · ${subject}`.slice(0, 180);
+}
+
 function isRevisionEligible(previousCase: {
   payment_status: string | null;
   access_granted_at: string | null;
@@ -88,7 +102,25 @@ export async function POST(request: Request) {
 
     const input = parsed.data;
     const supabase = createAdminClient();
-    const profile = await findOrCreateProfileByEmail(input.email);
+    const sessionClient = await createClient();
+    const {
+      data: { user: sessionUser },
+    } = await sessionClient.auth.getUser();
+
+    let profile: { id: string; email: string };
+    if (sessionUser?.email) {
+      const normalizedEmail = sessionUser.email.trim().toLowerCase();
+      const { data: ownProfile, error: profileError } = await supabase
+        .from("profiles")
+        .upsert({ id: sessionUser.id, email: normalizedEmail }, { onConflict: "id" })
+        .select("id, email")
+        .single();
+      if (profileError || !ownProfile) throw new Error(profileError?.message ?? "Profil connecté introuvable.");
+      profile = ownProfile;
+    } else {
+      profile = await findOrCreateProfileByEmail(input.email);
+    }
+
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { count } = await supabase
       .from("cases")
@@ -101,9 +133,7 @@ export async function POST(request: Request) {
 
     let pet: { id: string; name: string; species: "chien" | "chat" | "autre" } | null = null;
     if (input.pet_id) {
-      const sessionClient = await createClient();
-      const { data: { user } } = await sessionClient.auth.getUser();
-      if (!user || user.id !== profile.id) {
+      if (!sessionUser || sessionUser.id !== profile.id) {
         return NextResponse.json({ error: "Reconnectez-vous pour ajouter ce document à la fiche de cet animal." }, { status: 403 });
       }
       const { data: selectedPet } = await supabase
@@ -153,6 +183,7 @@ export async function POST(request: Request) {
         pet_id: pet.id,
         case_type: "devis_upload",
         document_type: input.document_type,
+        document_title: `${input.document_type === "facture" ? "Facture" : "Devis"} · ${readableFilename(file.name) || pet.name}`.slice(0, 180),
         status: "extraction_pending",
         emergency_context: input.emergency_context,
         user_description: input.user_description || null,
@@ -256,7 +287,12 @@ export async function POST(request: Request) {
       .eq("case_id", caseRow.id);
     await supabase
       .from("cases")
-      .update({ status: "extracted", detected_total_amount: preview.total_amount, currency: preview.currency })
+      .update({
+        status: "extracted",
+        document_title: documentTitle(input.document_type, preview.intervention, file.name),
+        detected_total_amount: preview.total_amount,
+        currency: preview.currency,
+      })
       .eq("id", caseRow.id);
 
     const token = crypto.randomUUID();
