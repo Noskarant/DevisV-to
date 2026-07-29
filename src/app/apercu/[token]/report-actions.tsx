@@ -33,14 +33,14 @@ export function ReportActions({
       <button
         type="button"
         onClick={() => copy("priority", formatQuestions(priorityQuestions))}
-        className="rounded-full border border-[#bfd5ce] bg-white px-4 py-3 text-sm font-semibold text-[#315f57] hover:bg-[#f1f7f4]"
+        className="rounded-full border border-[#b8d1c9] bg-white px-5 py-3.5 text-base font-semibold text-[#28564d] hover:bg-[#edf5f1]"
       >
         {copied === "priority" ? "3 questions copiées ✓" : "Copier les 3 questions prioritaires"}
       </button>
       <button
         type="button"
         onClick={() => copy("all", formatQuestions(questions))}
-        className="rounded-full border border-[#bfd5ce] bg-white px-4 py-3 text-sm font-semibold text-[#315f57] hover:bg-[#f1f7f4]"
+        className="rounded-full border border-[#b8d1c9] bg-white px-5 py-3.5 text-base font-semibold text-[#28564d] hover:bg-[#edf5f1]"
       >
         {copied === "all" ? "Toutes les questions copiées ✓" : "Copier toutes les questions"}
       </button>
@@ -48,7 +48,7 @@ export function ReportActions({
         <button
           type="button"
           onClick={() => copy("email", emailBody)}
-          className="rounded-full border border-[#bfd5ce] bg-white px-4 py-3 text-sm font-semibold text-[#315f57] hover:bg-[#f1f7f4]"
+          className="rounded-full border border-[#b8d1c9] bg-white px-5 py-3.5 text-base font-semibold text-[#28564d] hover:bg-[#edf5f1]"
         >
           {copied === "email" ? "E-mail copié ✓" : "Copier l’e-mail préparé"}
         </button>
@@ -56,7 +56,7 @@ export function ReportActions({
       {mailHref && (
         <a
           href={mailHref}
-          className="rounded-full bg-[#0c5b50] px-4 py-3 text-center text-sm font-semibold text-white hover:bg-[#084d44]"
+          className="rounded-full bg-[#0c5b50] px-5 py-3.5 text-center text-base font-semibold text-white hover:bg-[#084d44]"
         >
           Ouvrir dans ma messagerie
         </a>
