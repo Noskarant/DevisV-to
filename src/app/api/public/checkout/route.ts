@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCaseIdByPublicToken } from "@/lib/public-preview/data";
-import { getStripe, PRODUCT_PRICES } from "@/lib/stripe/server";
+import { getStripe, getStripePriceId, PRODUCT_PRICES } from "@/lib/stripe/server";
 
 const checkoutSchema = z.object({
   token: z.string().trim().min(1),
@@ -137,10 +137,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: `${appUrl}/apercu/${token}?payment=success&mock=true`, mock: true });
     }
 
-    const priceId = process.env[priceInfo.envKey];
+    const priceId = getStripePriceId(plan);
     const monthly = plan === "monthly";
+    const commonMetadata = {
+      case_id: caseId,
+      user_id: caseRow.user_id,
+      payment_id: payment.id,
+      product_type: plan,
+      public_token: token,
+    };
     const session = await stripe.checkout.sessions.create({
       mode: monthly ? "subscription" : "payment",
+      client_reference_id: caseId,
       customer_email: profile?.email || undefined,
       allow_promotion_codes: false,
       line_items: priceId
@@ -163,25 +171,10 @@ export async function POST(request: Request) {
           ],
       success_url: `${appUrl}/apercu/${token}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/apercu/${token}?payment=cancelled`,
-      metadata: {
-        case_id: caseId,
-        user_id: caseRow.user_id,
-        payment_id: payment.id,
-        product_type: plan,
-        public_token: token,
-      },
+      metadata: commonMetadata,
       ...(monthly
-        ? {
-            subscription_data: {
-              metadata: {
-                case_id: caseId,
-                user_id: caseRow.user_id,
-                payment_id: payment.id,
-                public_token: token,
-              },
-            },
-          }
-        : {}),
+        ? { subscription_data: { metadata: commonMetadata } }
+        : { payment_intent_data: { metadata: commonMetadata } }),
     });
 
     await supabase

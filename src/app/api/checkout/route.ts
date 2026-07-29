@@ -1,7 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/session";
 import { productTypeSchema } from "@/lib/validation/schemas";
-import { getStripe, PRODUCT_PRICES, type ProductType } from "@/lib/stripe/server";
+import {
+  getStripe,
+  getStripePriceId,
+  PRODUCT_PRICES,
+  type ProductType,
+} from "@/lib/stripe/server";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -35,7 +40,6 @@ export async function POST(request: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const stripe = getStripe();
 
-  // Enregistre le paiement en attente dans tous les cas
   const { data: payment, error: paymentError } = await supabase
     .from("payments")
     .insert({
@@ -52,16 +56,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: paymentError.message }, { status: 500 });
   }
 
-  await supabase.from("cases").update({ status: "payment_pending", product_type: productType }).eq("id", caseId);
+  await supabase
+    .from("cases")
+    .update({ status: "payment_pending", product_type: productType })
+    .eq("id", caseId);
 
   if (!stripe) {
-    // MODE MOCK : pas de clé Stripe configurée en dev.
-    // Redirige directement vers la page de succès en simulant un paiement validé.
     await supabase
       .from("payments")
       .update({ status: "succeeded", stripe_checkout_session_id: `mock_${payment.id}` })
       .eq("id", payment.id);
-    await supabase.from("cases").update({ status: "paid", payment_status: "succeeded" }).eq("id", caseId);
+    await supabase
+      .from("cases")
+      .update({ status: "paid", payment_status: "succeeded" })
+      .eq("id", caseId);
 
     return NextResponse.json({
       url: `${appUrl}/paiement/succes?case_id=${caseId}&mock=true`,
@@ -69,7 +77,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const priceId = process.env[priceInfo.envKey];
+  const priceId = getStripePriceId(productType);
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: priceId
