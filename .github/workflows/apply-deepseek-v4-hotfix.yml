@@ -1,0 +1,81 @@
+name: Apply DeepSeek V4 hotfix
+
+on:
+  push:
+    branches:
+      - agent/hotfix-deepseek-v4-flash
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message != 'Apply DeepSeek V4 hotfix'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/hotfix-deepseek-v4-flash
+          fetch-depth: 0
+      - name: Patch provider configuration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/lib/public-preview/generate.ts')
+          text = path.read_text()
+          text = text.replace('const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";', 'const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";')
+          old = '''function resolveDeepSeekModel() {
+            const configured = process.env.DEEPSEEK_MODEL?.trim();
+            if (!configured) return DEFAULT_DEEPSEEK_MODEL;
+            const normalized = configured.toLowerCase();
+            if (normalized.includes("v4") || normalized.includes("flash")) {
+              console.warn("[PREVIEW] Unsupported DeepSeek model alias replaced", {
+                configuredModel: configured,
+                resolvedModel: DEFAULT_DEEPSEEK_MODEL,
+              });
+              return DEFAULT_DEEPSEEK_MODEL;
+            }
+            return configured;
+          }'''
+          new = '''function resolveDeepSeekModel() {
+            const configured = process.env.DEEPSEEK_MODEL?.trim();
+            if (!configured) return DEFAULT_DEEPSEEK_MODEL;
+            const normalized = configured.toLowerCase();
+            if (normalized === "deepseek-v4-flash" || normalized === "deepseek-v4-pro") return normalized;
+            if (normalized === "deepseek-chat" || normalized === "deepseek-reasoner") {
+              console.warn("[PREVIEW] Retired DeepSeek model replaced", {
+                configuredModel: configured,
+                resolvedModel: DEFAULT_DEEPSEEK_MODEL,
+              });
+              return DEFAULT_DEEPSEEK_MODEL;
+            }
+            console.warn("[PREVIEW] Unknown DeepSeek model replaced", {
+              configuredModel: configured,
+              resolvedModel: DEFAULT_DEEPSEEK_MODEL,
+            });
+            return DEFAULT_DEEPSEEK_MODEL;
+          }'''
+          if old not in text:
+              raise SystemExit('resolveDeepSeekModel block not found')
+          text = text.replace(old, new)
+          marker = '''        model,
+                temperature: 0.05,'''
+          replacement = '''        model,
+                thinking: { type: "disabled" },
+                temperature: 0.05,'''
+          if marker not in text:
+              raise SystemExit('request body marker not found')
+          text = text.replace(marker, replacement, 1)
+          path.write_text(text)
+
+          env_path = Path('.env.example')
+          env_text = env_path.read_text().replace('DEEPSEEK_MODEL=deepseek-chat', 'DEEPSEEK_MODEL=deepseek-v4-flash')
+          env_path.write_text(env_text)
+          PY
+          rm .github/workflows/apply-deepseek-v4-hotfix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/lib/public-preview/generate.ts .env.example .github/workflows/apply-deepseek-v4-hotfix.yml
+          git commit -m 'Apply DeepSeek V4 hotfix'
+          git push origin HEAD:agent/hotfix-deepseek-v4-flash
