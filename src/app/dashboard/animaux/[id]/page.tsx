@@ -17,7 +17,7 @@ const STATUS_LABELS: Record<string, string> = {
   extraction_pending: "Lecture en cours",
   extracted: "Aperçu disponible",
   payment_pending: "Paiement en attente",
-  paid: "Rapport en préparation",
+  paid: "Rapport complet débloqué",
   review_pending: "Vérification humaine",
   needs_information: "Informations demandées",
   approved: "Rapport validé",
@@ -60,7 +60,7 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
     supabase
       .from("cases")
       .select(
-        "id, status, document_type, detected_total_amount, currency, created_at, document_date, user_description, payment_status, entitlement_source, case_documents(original_filename)"
+        "id, status, document_type, document_title, detected_total_amount, currency, created_at, document_date, user_description, payment_status, entitlement_source, case_documents(original_filename)"
       )
       .eq("pet_id", id)
       .eq("user_id", user.id)
@@ -82,11 +82,34 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
 
   if (!pet || pet.archived_at) notFound();
 
+  const caseIds = (cases ?? []).map((caseRow) => caseRow.id);
+  const { data: previewEvents } = caseIds.length
+    ? await supabase
+        .from("analytics_events")
+        .select("case_id, metadata")
+        .eq("user_id", user.id)
+        .eq("event_name", "public_preview_created")
+        .in("case_id", caseIds)
+    : { data: [] as Array<{ case_id: string; metadata: unknown }> };
+
+  const tokenByCase = new Map<string, string>();
+  for (const event of previewEvents ?? []) {
+    const token = (event.metadata as { token?: unknown } | null)?.token;
+    if (typeof token === "string" && token) tokenByCase.set(event.case_id, token);
+  }
+
+  let photoUrl: string | null = null;
+  if (pet.photo_path) {
+    const { data } = await supabase.storage.from("pet-photos").createSignedUrl(pet.photo_path, 60 * 60);
+    photoUrl = data?.signedUrl ?? null;
+  }
+
   const upcomingReminders = (reminders ?? []).filter((reminder) => !reminder.completed_at);
   const completedReminders = (reminders ?? []).filter((reminder) => reminder.completed_at);
   const latestWeight = weights?.[0] ? Number(weights[0].weight_kg) : pet.weight_kg ? Number(pet.weight_kg) : null;
   const previousWeight = weights?.[1] ? Number(weights[1].weight_kg) : null;
   const weightDelta = latestWeight !== null && previousWeight !== null ? latestWeight - previousWeight : null;
+  const petInitial = pet.name.trim().charAt(0).toUpperCase();
 
   return (
     <main className="min-h-screen bg-[#f4f7f4] px-5 py-8 text-[#173b35] sm:px-8 sm:py-12">
@@ -104,7 +127,15 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         <section className="mt-6 overflow-hidden rounded-[30px] bg-[#123f38] text-white shadow-[0_24px_70px_rgba(18,63,56,0.18)]">
-          <div className="grid gap-6 px-6 py-8 sm:px-9 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div className="grid gap-7 px-6 py-8 sm:px-9 lg:grid-cols-[auto_1fr_auto] lg:items-center">
+            <div
+              role="img"
+              aria-label={`Photo de ${pet.name}`}
+              className="flex h-28 w-28 items-center justify-center rounded-[30px] border border-white/15 bg-white/10 bg-cover bg-center text-4xl font-extrabold text-white shadow-lg sm:h-36 sm:w-36"
+              style={photoUrl ? { backgroundImage: `url(${photoUrl})` } : undefined}
+            >
+              {!photoUrl && petInitial}
+            </div>
             <div>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-extrabold text-[#d5e4e0]">
@@ -114,10 +145,10 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
               </div>
               <h1 className="mt-4 font-serif text-5xl font-semibold tracking-[-0.05em] sm:text-6xl">{pet.name}</h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-[#c4d7d2]">
-                Son dossier rassemble ses informations déclarées, ses devis, ses factures, ses rappels et l’évolution de son poids.
+                Tous ses devis, factures et rapports restent enregistrés ici, dans l’ordre chronologique.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-3 lg:grid-cols-1 xl:grid-cols-3">
               <div className="rounded-2xl bg-white/10 px-4 py-3">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#a9c9c1]">Documents</p>
                 <p className="mt-1 text-2xl font-extrabold">{cases?.length ?? 0}</p>
@@ -137,8 +168,9 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
         <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:items-start">
           <div className="space-y-7">
             <section className="rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.06)] sm:p-8">
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Timeline documentaire</p>
-              <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Son historique, dans l’ordre.</h2>
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Chronologie documentaire</p>
+              <h2 className="mt-2 font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Ses documents, du plus récent au plus ancien.</h2>
+              <p className="mt-3 text-sm leading-6 text-[#6c837d]">Chaque import est conservé avec sa date, son titre, son montant et son niveau d’accès.</p>
 
               {!cases?.length ? (
                 <div className="mt-6 rounded-2xl border border-dashed border-[#cbded7] bg-[#f7faf9] px-5 py-8 text-center">
@@ -148,35 +180,51 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
                   </Link>
                 </div>
               ) : (
-                <div className="mt-7 space-y-4">
+                <div className="mt-7 space-y-5">
                   {cases.map((caseRow, index) => {
                     const documents = caseRow.case_documents as unknown as Array<{ original_filename: string }> | null;
                     const amount = formatMoney(caseRow.detected_total_amount, caseRow.currency || "EUR");
+                    const token = tokenByCase.get(caseRow.id);
+                    const paid = caseRow.payment_status === "succeeded";
+                    const fallbackTitle = caseRow.document_type === "facture" ? "Facture vétérinaire" : "Devis vétérinaire";
                     return (
-                      <div key={caseRow.id} className="relative pl-8">
-                        {index < cases.length - 1 && <div className="absolute left-[10px] top-7 h-[calc(100%+16px)] w-px bg-[#d6e4df]" />}
-                        <span className="absolute left-0 top-2 h-5 w-5 rounded-full border-4 border-white bg-[#0c5b50] shadow" />
-                        <Link href={`/dashboard/dossiers/${caseRow.id}`} className="block rounded-2xl border border-[#dce7e2] bg-[#fbfcfc] p-5 transition hover:border-[#9dc7ba] hover:bg-white">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-extrabold text-[#204f47]">
-                                {caseRow.document_type === "facture" ? "Facture vétérinaire" : "Devis vétérinaire"}
-                              </p>
-                              <p className="mt-1 text-xs text-[#78908a]">
+                      <article key={caseRow.id} className="relative pl-8">
+                        {index < cases.length - 1 && <div className="absolute left-[10px] top-7 h-[calc(100%+20px)] w-px bg-[#d6e4df]" />}
+                        <span className={`absolute left-0 top-3 h-5 w-5 rounded-full border-4 border-white shadow ${paid ? "bg-[#0c6a5d]" : "bg-[#8ca19c]"}`} />
+                        <div className="rounded-[22px] border border-[#dce7e2] bg-[#fbfcfc] p-5 transition hover:border-[#9dc7ba] hover:bg-white">
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="text-lg font-extrabold leading-6 text-[#204f47]">{caseRow.document_title || fallbackTitle}</p>
+                              <p className="mt-1.5 text-xs text-[#78908a]">
                                 {formatDate(caseRow.document_date || caseRow.created_at)}
                                 {documents?.[0]?.original_filename ? ` · ${documents[0].original_filename}` : ""}
                               </p>
                             </div>
                             <div className="text-right">
-                              {amount && <p className="text-sm font-extrabold text-[#123f38]">{amount}</p>}
-                              <span className="mt-1 inline-flex rounded-full bg-[#e8f3ef] px-3 py-1 text-[11px] font-extrabold text-[#397268]">
-                                {STATUS_LABELS[caseRow.status] ?? caseRow.status}
+                              {amount && <p className="text-base font-extrabold text-[#123f38]">{amount}</p>}
+                              <span className={`mt-1 inline-flex rounded-full px-3 py-1 text-[11px] font-extrabold ${paid ? "bg-[#dff0ea] text-[#28695e]" : "bg-[#edf1ef] text-[#617771]"}`}>
+                                {paid ? "Analyse complète achetée" : STATUS_LABELS[caseRow.status] ?? caseRow.status}
                               </span>
                             </div>
                           </div>
                           {caseRow.user_description && <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#647d77]">{caseRow.user_description}</p>}
-                        </Link>
-                      </div>
+                          <div className="mt-4 flex flex-wrap gap-2.5">
+                            {token && (
+                              <Link href={`/apercu/${token}`} className="rounded-full bg-[#0c5b50] px-4 py-2.5 text-xs font-extrabold text-white hover:bg-[#084d44]">
+                                {paid ? "Ouvrir l’analyse complète" : "Voir l’aperçu"}
+                              </Link>
+                            )}
+                            {paid && token && (
+                              <a href={`/api/public/report/${token}`} className="rounded-full border border-[#bcd3cc] bg-white px-4 py-2.5 text-xs font-extrabold text-[#315f57] hover:bg-[#f1f7f4]">
+                                Télécharger le PDF
+                              </a>
+                            )}
+                            <Link href={`/dashboard/dossiers/${caseRow.id}`} className="rounded-full border border-[#d6e2de] px-4 py-2.5 text-xs font-extrabold text-[#5a746d] hover:bg-white">
+                              Voir le dossier
+                            </Link>
+                          </div>
+                        </div>
+                      </article>
                     );
                   })}
                 </div>
@@ -206,30 +254,27 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
               <summary className="cursor-pointer list-none">
                 <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Modifier le dossier</p>
                 <div className="mt-2 flex items-center justify-between gap-4">
-                  <h2 className="font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Mettre ses informations à jour</h2>
+                  <h2 className="font-serif text-3xl font-semibold tracking-[-0.04em] text-[#123f38]">Photo et informations de {pet.name}</h2>
                   <span className="rounded-full bg-[#edf6f2] px-3 py-1.5 text-xs font-extrabold text-[#397268]">Ouvrir</span>
                 </div>
               </summary>
               <div className="mt-7">
-                <PetForm pet={pet} action={updatePetAction} submitLabel="Enregistrer les modifications" />
+                <PetForm pet={pet} photoUrl={photoUrl} action={updatePetAction} submitLabel="Enregistrer les modifications" />
               </div>
             </details>
           </div>
 
-          <aside className="space-y-7 lg:sticky lg:top-6">
+          <aside className="space-y-7 lg:sticky lg:top-16">
             <section className="rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.08)]">
               <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Suivi du poids</p>
-              <div className="mt-3 flex items-end justify-between gap-4">
-                <div>
-                  <p className="font-serif text-4xl font-semibold tracking-[-0.045em] text-[#123f38]">{latestWeight ? `${latestWeight} kg` : "—"}</p>
-                  {weightDelta !== null && (
-                    <p className={`mt-1 text-xs font-bold ${weightDelta > 0 ? "text-[#a56247]" : weightDelta < 0 ? "text-[#397268]" : "text-[#78908a]"}`}>
-                      {weightDelta > 0 ? "+" : ""}{weightDelta.toFixed(2)} kg depuis la mesure précédente
-                    </p>
-                  )}
-                </div>
+              <div className="mt-3">
+                <p className="font-serif text-4xl font-semibold tracking-[-0.045em] text-[#123f38]">{latestWeight ? `${latestWeight} kg` : "—"}</p>
+                {weightDelta !== null && (
+                  <p className={`mt-1 text-xs font-bold ${weightDelta > 0 ? "text-[#a56247]" : weightDelta < 0 ? "text-[#397268]" : "text-[#78908a]"}`}>
+                    {weightDelta > 0 ? "+" : ""}{weightDelta.toFixed(2)} kg depuis la mesure précédente
+                  </p>
+                )}
               </div>
-
               <form action={addWeightAction} className="mt-5 space-y-3 rounded-2xl bg-[#f5f8f7] p-4">
                 <input type="hidden" name="pet_id" value={pet.id} />
                 <div className="grid grid-cols-2 gap-3">
@@ -239,7 +284,6 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
                 <input name="notes" placeholder="Note facultative" className="w-full rounded-xl border border-[#ccdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#65a391]" />
                 <button className="w-full rounded-full bg-[#123f38] px-4 py-2.5 text-sm font-extrabold text-white">Ajouter la mesure</button>
               </form>
-
               {weights?.length ? (
                 <div className="mt-5 space-y-2">
                   {weights.slice(0, 6).map((entry) => (
@@ -255,7 +299,6 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
             <section className="rounded-[26px] border border-[#dce7e2] bg-white p-6 shadow-[0_14px_40px_rgba(31,78,67,0.08)]">
               <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#5d8179]">Rappels documentaires</p>
               <h2 className="mt-2 font-serif text-2xl font-semibold tracking-[-0.035em] text-[#123f38]">Les prochaines dates utiles.</h2>
-
               <form action={addReminderAction} className="mt-5 space-y-3 rounded-2xl bg-[#f5f8f7] p-4">
                 <input type="hidden" name="pet_id" value={pet.id} />
                 <input required name="title" maxLength={180} placeholder="Ex. contrôle postopératoire" className="w-full rounded-xl border border-[#ccdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#65a391]" />
@@ -263,7 +306,6 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
                 <textarea name="notes" rows={2} placeholder="Précision facultative" className="w-full resize-none rounded-xl border border-[#ccdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#65a391]" />
                 <button className="w-full rounded-full bg-[#123f38] px-4 py-2.5 text-sm font-extrabold text-white">Créer le rappel</button>
               </form>
-
               <div className="mt-5 space-y-3">
                 {upcomingReminders.length ? upcomingReminders.map((reminder) => (
                   <div key={reminder.id} className="rounded-2xl border border-[#dce7e2] p-4">
@@ -282,7 +324,6 @@ export default async function PetDetailPage({ params }: { params: Promise<{ id: 
                   </div>
                 )) : <p className="text-sm text-[#78908a]">Aucun rappel à venir.</p>}
               </div>
-
               {completedReminders.length > 0 && (
                 <p className="mt-4 text-xs font-semibold text-[#8a9e99]">{completedReminders.length} rappel{completedReminders.length > 1 ? "s" : ""} terminé{completedReminders.length > 1 ? "s" : ""}</p>
               )}
