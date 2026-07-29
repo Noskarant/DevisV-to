@@ -24,7 +24,7 @@ function CheckIcon() {
 
 export const metadata = {
   title: "Comprendre un document vétérinaire — DevisVéto",
-  description: "Déposez un devis ou une facture vétérinaire et obtenez une première lecture claire et personnalisée.",
+  description: "Déposez un devis ou une facture vétérinaire et obtenez une première lecture claire, reliée aux lignes du document.",
 };
 
 export default async function AnalyserPage({
@@ -46,15 +46,7 @@ export default async function AnalyserPage({
         .eq("user_id", user.id)
         .is("archived_at", null)
         .maybeSingle();
-
-      if (pet) {
-        initialPet = {
-          id: pet.id,
-          name: pet.name,
-          species: pet.species,
-          email: user.email,
-        };
-      }
+      if (pet) initialPet = { id: pet.id, name: pet.name, species: pet.species, email: user.email };
     }
   }
 
@@ -64,10 +56,7 @@ export default async function AnalyserPage({
         <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <Link href="/" className="flex items-center gap-3">
             <BrandMark />
-            <div>
-              <p className="text-lg font-semibold tracking-[-0.02em] text-[#123f38]">DevisVéto</p>
-              <p className="mt-0.5 text-[9px] font-semibold uppercase text-[#6a857f]">Votre devis, en clair</p>
-            </div>
+            <div><p className="text-lg font-semibold tracking-[-0.02em] text-[#123f38]">DevisVéto</p><p className="mt-0.5 text-[9px] font-semibold uppercase text-[#6a857f]">Votre devis, en clair</p></div>
           </Link>
           <Link href="/dashboard" className="text-sm font-semibold text-[#45665f] hover:text-[#0c5b50]">Mon espace</Link>
         </div>
@@ -76,40 +65,23 @@ export default async function AnalyserPage({
       <section className="relative overflow-hidden px-5 py-10 sm:px-8 sm:py-14">
         <div className="pointer-events-none absolute left-[-8%] top-[-12%] h-80 w-80 rounded-full bg-[#cfe8df]/75 blur-3xl" />
         <div className="pointer-events-none absolute bottom-[-15%] right-[-6%] h-80 w-80 rounded-full bg-[#f6d0c3]/45 blur-3xl" />
-
         <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <aside className="pt-3 lg:sticky lg:top-10 lg:pt-8">
-            <div className="inline-flex rounded-full bg-[#e4f1ec] px-3 py-1.5 text-xs font-semibold uppercase text-[#397268]">Première explication gratuite</div>
-            <h1 className="mt-5 max-w-xl font-serif text-4xl leading-[1.1] text-[#123f38] sm:text-5xl lg:text-[56px]">
-              Ajoutez votre document : nous vous aidons à comprendre ce qu’il contient.
-            </h1>
-            <p className="mt-5 max-w-lg text-base leading-8 text-[#647d77]">
-              Vous verrez plusieurs lignes expliquées et des questions à poser à la clinique. Rien n’est interprété médicalement.
-            </p>
-
+            <div className="inline-flex rounded-full bg-[#e4f1ec] px-3 py-1.5 text-xs font-semibold uppercase text-[#397268]">Voyez déjà ce que contient votre document</div>
+            <h1 className="mt-5 max-w-xl font-serif text-4xl leading-[1.1] text-[#123f38] sm:text-5xl lg:text-[56px]">Comprenez ce qui est prévu, ce qui manque et quoi demander à la clinique.</h1>
+            <p className="mt-5 max-w-lg text-base leading-8 text-[#647d77]">L’aperçu montre une vraie prestation expliquée avec son libellé, son montant, sa page source et une question personnalisée.</p>
             <div className="mt-8 space-y-4">
               {[
-                "Deux lignes expliquées dès l’aperçu",
-                "Aucun diagnostic ni avis sur les soins",
-                "Le rapport complet est relu par une personne",
-                "Les documents peuvent être classés par animal",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3 text-sm font-semibold text-[#365f57]">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#0c5b50] shadow-sm"><CheckIcon /></span>
-                  {item}
-                </div>
-              ))}
+                "Une prestation complexe expliquée entièrement",
+                "Tous les libellés et montants détectés restent visibles",
+                "Un point précis et une question prête à poser",
+                "Aucun diagnostic ni jugement sur le prix",
+              ].map((item) => <div key={item} className="flex items-center gap-3 text-sm font-semibold text-[#365f57]"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#0c5b50] shadow-sm"><CheckIcon /></span>{item}</div>)}
             </div>
-
-            <div className="mt-9 rounded-2xl border border-[#d8e7e1] bg-white/75 p-5 text-sm leading-6 text-[#647d77]">
-              <p className="font-semibold text-[#123f38]">DevisVéto ne remplace pas votre vétérinaire.</p>
-              <p className="mt-1.5">Si l’état de votre animal vous inquiète, contactez directement une clinique.</p>
-            </div>
+            <div className="mt-9 rounded-2xl border border-[#d8e7e1] bg-white/75 p-5 text-sm leading-6 text-[#647d77]"><p className="font-semibold text-[#123f38]">Votre document reste privé.</p><p className="mt-1.5">Lien non indexé, téléchargement protégé et suppression disponible depuis votre espace. Le fichier reste conservé jusqu’à votre demande de suppression.</p></div>
+            <div className="mt-4 rounded-2xl border border-[#d8e7e1] bg-white/60 p-5 text-sm leading-6 text-[#647d77]"><p className="font-semibold text-[#123f38]">DevisVéto ne remplace pas votre vétérinaire.</p><p className="mt-1.5">Si l’état de votre animal vous inquiète, contactez directement une clinique.</p></div>
           </aside>
-
-          <div className="rounded-[30px] border border-white bg-white p-5 shadow-[0_28px_80px_rgba(31,78,67,0.13)] sm:p-8 lg:p-10">
-            <PublicWizard initialPet={initialPet} />
-          </div>
+          <div className="rounded-[30px] border border-white bg-white p-5 shadow-[0_28px_80px_rgba(31,78,67,0.13)] sm:p-8 lg:p-10"><PublicWizard initialPet={initialPet} /></div>
         </div>
       </section>
     </main>
