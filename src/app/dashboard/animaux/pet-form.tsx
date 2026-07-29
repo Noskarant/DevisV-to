@@ -20,10 +20,12 @@ type PetFormValue = {
   insurance_provider?: string | null;
   insurance_contract?: string | null;
   general_notes?: string | null;
+  photo_path?: string | null;
 };
 
 type Props = {
   pet?: PetFormValue | null;
+  photoUrl?: string | null;
   action: (formData: FormData) => void | Promise<void>;
   submitLabel: string;
 };
@@ -53,12 +55,47 @@ function Section({
   );
 }
 
-export function PetForm({ pet, action, submitLabel }: Props) {
+export function PetForm({ pet, photoUrl = null, action, submitLabel }: Props) {
   const sterilizedValue = pet?.sterilized === true ? "true" : pet?.sterilized === false ? "false" : "unknown";
+  const initial = pet?.name?.trim().charAt(0).toUpperCase() || "🐾";
 
   return (
-    <form action={action} className="space-y-6">
+    <form action={action} encType="multipart/form-data" className="space-y-6">
       {pet?.id && <input type="hidden" name="pet_id" value={pet.id} />}
+
+      <Section
+        eyebrow="Photo — facultatif"
+        title="Ajoutez un visage à sa fiche"
+        description="La photo reste privée dans votre espace. JPG, PNG ou WebP, 5 Mo maximum."
+      >
+        <div className="sm:col-span-2 flex flex-col gap-5 rounded-2xl bg-[#f5f9f7] p-4 sm:flex-row sm:items-center">
+          <div
+            role="img"
+            aria-label={pet?.name ? `Photo de ${pet.name}` : "Aperçu de la photo de l’animal"}
+            className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[24px] bg-[#dfeee8] bg-cover bg-center text-3xl font-semibold text-[#245f55] shadow-inner"
+            style={photoUrl ? { backgroundImage: `url(${photoUrl})` } : undefined}
+          >
+            {!photoUrl && initial}
+          </div>
+          <div className="flex-1">
+            <label className="block">
+              <span className={labelClass}>{photoUrl ? "Remplacer la photo" : "Choisir une photo"}</span>
+              <input
+                type="file"
+                name="photo"
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                className="mt-2 block w-full rounded-2xl border border-[#ccdcd6] bg-white px-3 py-2.5 text-sm text-[#45665f] file:mr-3 file:rounded-full file:border-0 file:bg-[#e7f3ee] file:px-4 file:py-2 file:text-xs file:font-semibold file:text-[#205b51]"
+              />
+            </label>
+            {pet?.photo_path && (
+              <label className="mt-3 flex items-center gap-2 text-sm text-[#6c837d]">
+                <input type="checkbox" name="remove_photo" value="true" className="h-4 w-4 accent-[#0c5b50]" />
+                Supprimer la photo actuelle
+              </label>
+            )}
+          </div>
+        </div>
+      </Section>
 
       <Section
         eyebrow="Informations de base"
