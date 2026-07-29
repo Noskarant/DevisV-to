@@ -18,7 +18,7 @@ type GeneratePreviewInput = {
 
 type JsonRecord = Record<string, unknown>;
 
-const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
+const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEEPSEEK_TIMEOUT_MS = 42_000;
 const SAFE_PRICE_CONTEXT =
   "Le montant est présenté de façon factuelle. Le rapport explique sa composition et les informations à faire préciser, sans juger le tarif ni la nécessité des soins.";
@@ -250,14 +250,19 @@ function resolveDeepSeekModel() {
   const configured = process.env.DEEPSEEK_MODEL?.trim();
   if (!configured) return DEFAULT_DEEPSEEK_MODEL;
   const normalized = configured.toLowerCase();
-  if (normalized.includes("v4") || normalized.includes("flash")) {
-    console.warn("[PREVIEW] Unsupported DeepSeek model alias replaced", {
+  if (normalized === "deepseek-v4-flash" || normalized === "deepseek-v4-pro") return normalized;
+  if (normalized === "deepseek-chat" || normalized === "deepseek-reasoner") {
+    console.warn("[PREVIEW] Retired DeepSeek model replaced", {
       configuredModel: configured,
       resolvedModel: DEFAULT_DEEPSEEK_MODEL,
     });
     return DEFAULT_DEEPSEEK_MODEL;
   }
-  return configured;
+  console.warn("[PREVIEW] Unknown DeepSeek model replaced", {
+    configuredModel: configured,
+    resolvedModel: DEFAULT_DEEPSEEK_MODEL,
+  });
+  return DEFAULT_DEEPSEEK_MODEL;
 }
 
 async function generateWithDeepSeek(input: {
@@ -299,6 +304,7 @@ Règles absolues :
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({
         model,
+        thinking: { type: "disabled" },
         temperature: 0.05,
         max_tokens: 5000,
         stream: false,
