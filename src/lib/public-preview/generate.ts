@@ -18,7 +18,8 @@ type GeneratePreviewInput = {
 
 type JsonRecord = Record<string, unknown>;
 
-const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
+const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
+const DEEPSEEK_TIMEOUT_MS = 42_000;
 const SAFE_PRICE_CONTEXT =
   "Le montant est présenté de façon factuelle. Le rapport explique sa composition et les informations à faire préciser, sans juger le tarif ni la nécessité des soins.";
 const SAFE_EXPLANATION =
@@ -245,6 +246,20 @@ function compactProviderError(raw: string) {
   }
 }
 
+function resolveDeepSeekModel() {
+  const configured = process.env.DEEPSEEK_MODEL?.trim();
+  if (!configured) return DEFAULT_DEEPSEEK_MODEL;
+  const normalized = configured.toLowerCase();
+  if (normalized.includes("v4") || normalized.includes("flash")) {
+    console.warn("[PREVIEW] Unsupported DeepSeek model alias replaced", {
+      configuredModel: configured,
+      resolvedModel: DEFAULT_DEEPSEEK_MODEL,
+    });
+    return DEFAULT_DEEPSEEK_MODEL;
+  }
+  return configured;
+}
+
 async function generateWithDeepSeek(input: {
   anonymizedDocument: string;
   safeContext: string;
@@ -258,7 +273,7 @@ async function generateWithDeepSeek(input: {
     console.error("[PREVIEW] DEEPSEEK_API_KEY is missing");
     return null;
   }
-  const model = process.env.DEEPSEEK_MODEL?.trim() || DEFAULT_DEEPSEEK_MODEL;
+  const model = resolveDeepSeekModel();
   const systemPrompt = `Tu lis uniquement le texte OCR anonymisé d’un devis ou d’une facture vétérinaire pour en préparer une explication documentaire traçable.
 Réponds exclusivement avec un objet JSON valide.
 Règles absolues :
@@ -276,7 +291,7 @@ Règles absolues :
 - questions coopératives, spécifiques et non accusatoires ;
 - aucun raisonnement ni markdown hors JSON.`;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 28_000);
+  const timeout = setTimeout(() => controller.abort(), DEEPSEEK_TIMEOUT_MS);
   try {
     const baseUrl = (process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com").replace(/\/$/, "");
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -284,9 +299,9 @@ Règles absolues :
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({
         model,
-        thinking: { type: "disabled" },
         temperature: 0.05,
-        max_tokens: 5500,
+        max_tokens: 5000,
+        stream: false,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt },
@@ -296,6 +311,7 @@ Règles absolues :
           },
         ],
       }),
+      cache: "no-store",
       signal: controller.signal,
     });
     if (!response.ok) {
@@ -365,7 +381,7 @@ export async function generatePreview(input: GeneratePreviewInput): Promise<Prev
     readability: enriched.document_readability,
     sourcedLines: enriched.lines.filter((line) => line.source_page && line.source_quote).length,
     redactionCount: anonymizedDocument.redactionCount + safeContext.redactionCount + safeQuestion.redactionCount,
-    deepseekModel: process.env.DEEPSEEK_MODEL?.trim() || DEFAULT_DEEPSEEK_MODEL,
+    deepseekModel: resolveDeepSeekModel(),
     thinkingMode: "disabled",
   });
   return enriched;
