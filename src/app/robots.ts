@@ -1,22 +1,22 @@
 import type { MetadataRoute } from "next";
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://devis-v-to.vercel.app";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.devisveto.fr";
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
-        allow: [
-          "/",
-          "/analyser",
-          "/ce-que-fait-devisveto",
-          "/confidentialite",
-          "/guides/comprendre-devis-veterinaire",
+        allow: "/",
+        disallow: [
+          "/admin/",
+          "/dashboard/",
+          "/apercu/",
+          "/api/",
         ],
-        disallow: ["/admin", "/dashboard", "/apercu", "/api"],
       },
     ],
     sitemap: `${appUrl}/sitemap.xml`,
+    host: appUrl,
   };
 }
