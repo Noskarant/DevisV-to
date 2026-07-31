@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { sendWelcomeEmail } from "@/lib/email/send";
 
 export async function getCurrentProfile() {
   const supabase = await createClient();
@@ -23,6 +24,14 @@ export async function getCurrentProfile() {
     .insert({ id: user.id, email: user.email ?? "" })
     .select("*")
     .single();
+
+  if (created?.email) {
+    try {
+      await sendWelcomeEmail(created.email);
+    } catch (error) {
+      console.error("[WELCOME_EMAIL]", error instanceof Error ? error.message : "unknown");
+    }
+  }
 
   return created;
 }

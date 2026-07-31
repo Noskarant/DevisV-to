@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPaymentConfirmedEmail } from "@/lib/email/send";
 import { resolveCaseIdByPublicToken } from "@/lib/public-preview/data";
-import { getStripe } from "./server";
+import { getStripe, PRODUCT_PRICES, type ProductType } from "./server";
 
 function toIso(timestamp?: number | null) {
   return timestamp ? new Date(timestamp * 1000).toISOString() : null;
@@ -110,7 +110,7 @@ export async function fulfillCheckoutSession(
   const [{ data: payment }, { data: caseBefore }] = await Promise.all([
     supabase
       .from("payments")
-      .select("id, case_id, user_id, status, stripe_checkout_session_id")
+      .select("id, case_id, user_id, status, stripe_checkout_session_id, amount, currency, product_type")
       .eq("id", paymentId)
       .maybeSingle(),
     supabase
@@ -190,8 +190,17 @@ export async function fulfillCheckoutSession(
     const pet = caseRow?.pets as unknown as { name: string } | null;
     const profile = caseRow?.profiles as unknown as { email: string } | null;
     if (profile?.email) {
+      const typedProductType =
+        payment.product_type && payment.product_type in PRODUCT_PRICES
+          ? (payment.product_type as ProductType)
+          : null;
       try {
-        await sendPaymentConfirmedEmail(profile.email, pet?.name ?? "votre animal");
+        await sendPaymentConfirmedEmail(profile.email, pet?.name ?? "votre animal", {
+          amountCents: payment.amount,
+          currency: payment.currency,
+          productLabel: typedProductType ? PRODUCT_PRICES[typedProductType].label : null,
+          paidAt: new Date(),
+        });
       } catch (error) {
         console.error(
           "[STRIPE_FULFILLMENT_EMAIL]",
