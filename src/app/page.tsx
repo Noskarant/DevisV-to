@@ -279,9 +279,14 @@ export default async function HomePage() {
       </section>
 
       <footer className="border-t border-[#dce7e2] bg-white px-5 py-8 sm:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 text-center lg:flex-row lg:text-left">
           <div className="flex items-center gap-3"><BrandMark className="h-9 w-9" /><div><p className="text-sm font-semibold text-[#123f38]">DevisVéto</p><p className="text-xs text-[#829791]">Explication et suivi documentaire vétérinaire</p></div></div>
-          <p className="text-xs leading-5 text-[#829791]">En cas d’urgence, contactez directement un vétérinaire et ne retardez pas les soins.</p>
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-semibold text-[#5f7d76]">
+            <Link href="/guides/comprendre-devis-veterinaire" className="hover:text-[#0c5b50]">Guide devis vétérinaire</Link>
+            <Link href="/ce-que-fait-devisveto" className="hover:text-[#0c5b50]">Ce que fait DevisVéto</Link>
+            <Link href="/confidentialite" className="hover:text-[#0c5b50]">Confidentialité</Link>
+          </nav>
+          <p className="max-w-sm text-xs leading-5 text-[#829791]">En cas d’urgence, contactez directement un vétérinaire et ne retardez pas les soins.</p>
         </div>
       </footer>
     </main>

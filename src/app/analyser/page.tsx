@@ -80,6 +80,11 @@ export default async function AnalyserPage({
             </div>
             <div className="mt-9 rounded-2xl border border-[#d8e7e1] bg-white/75 p-5 text-sm leading-6 text-[#647d77]"><p className="font-semibold text-[#123f38]">Votre document reste privé.</p><p className="mt-1.5">Lien non indexé, téléchargement protégé et suppression disponible depuis votre espace. Le fichier reste conservé jusqu’à votre demande de suppression.</p></div>
             <div className="mt-4 rounded-2xl border border-[#d8e7e1] bg-white/60 p-5 text-sm leading-6 text-[#647d77]"><p className="font-semibold text-[#123f38]">DevisVéto ne remplace pas votre vétérinaire.</p><p className="mt-1.5">Si l’état de votre animal vous inquiète, contactez directement une clinique.</p></div>
+            <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-[#5f7d76]">
+              <Link href="/confidentialite" className="hover:text-[#0c5b50]">Confidentialité</Link>
+              <Link href="/ce-que-fait-devisveto" className="hover:text-[#0c5b50]">Périmètre du service</Link>
+              <Link href="/guides/comprendre-devis-veterinaire" className="hover:text-[#0c5b50]">Guide devis</Link>
+            </div>
           </aside>
           <div className="rounded-[30px] border border-white bg-white p-5 shadow-[0_28px_80px_rgba(31,78,67,0.13)] sm:p-8 lg:p-10"><PublicWizard initialPet={initialPet} /></div>
         </div>
