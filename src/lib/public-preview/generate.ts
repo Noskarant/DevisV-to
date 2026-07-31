@@ -43,6 +43,117 @@ function unique(values: Array<string | null | undefined>) {
   return [...new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))];
 }
 
+const VULGARIZATION_TERMS = [
+  {
+    pattern: /\bTPLO\b|ost[ée]otomie de nivellement du plateau tibial/i,
+    term: "TPLO",
+    explanation:
+      "TPLO signifie osteotomie de nivellement du plateau tibial : c'est une chirurgie du genou souvent mentionnee lors d'une rupture du ligament croise chez le chien. Le document chiffre ici l'acte, sans dire a lui seul si l'intervention est necessaire.",
+  },
+  {
+    pattern: /\bCRP\b|proteine c.?reactive/i,
+    term: "CRP",
+    explanation:
+      "CRP signifie proteine C-reactive : c'est un marqueur sanguin d'inflammation. Le devis facture l'analyse, pas l'interpretation medicale du resultat.",
+  },
+  {
+    pattern: /\bNFS\b|num[ée]ration formule sanguine/i,
+    term: "NFS",
+    explanation:
+      "NFS signifie numeration formule sanguine : c'est une analyse qui compte notamment les globules rouges, globules blancs et plaquettes.",
+  },
+  {
+    pattern: /\bIV\b|intraveineuse/i,
+    term: "IV",
+    explanation:
+      "IV signifie intraveineux : cela correspond a une administration par voie veineuse, par exemple pour une perfusion ou certains medicaments.",
+  },
+  {
+    pattern: /\bPU\b|prix unitaire/i,
+    term: "PU",
+    explanation:
+      "PU signifie prix unitaire : c'est le prix d'une unite avant multiplication par la quantite.",
+  },
+  {
+    pattern: /\bHT\b|hors taxes/i,
+    term: "HT",
+    explanation:
+      "HT signifie hors taxes : c'est le montant avant application de la TVA.",
+  },
+  {
+    pattern: /\bTTC\b|toutes taxes comprises/i,
+    term: "TTC",
+    explanation:
+      "TTC signifie toutes taxes comprises : c'est le montant apres ajout des taxes.",
+  },
+  {
+    pattern: /\bTVA\b/i,
+    term: "TVA",
+    explanation:
+      "TVA signifie taxe sur la valeur ajoutee : c'est la taxe appliquee a certaines lignes ou au total.",
+  },
+  {
+    pattern: /monitoring anesth[ée]sique|monitorage/i,
+    term: "monitoring anesthesique",
+    explanation:
+      "Le monitoring anesthesique correspond a la surveillance des constantes pendant l'anesthesie, par exemple respiration, rythme cardiaque ou oxygenation selon l'equipement utilise.",
+  },
+  {
+    pattern: /s[ée]dation/i,
+    term: "sedation",
+    explanation:
+      "La sedation consiste a calmer ou endormir partiellement l'animal pour permettre un examen ou un soin dans de meilleures conditions.",
+  },
+  {
+    pattern: /biochimie/i,
+    term: "biochimie",
+    explanation:
+      "La biochimie est une analyse sanguine qui explore le fonctionnement de certains organes et equilibres internes. Le devis facture l'examen, pas la conclusion medicale.",
+  },
+  {
+    pattern: /ionogramme/i,
+    term: "ionogramme",
+    explanation:
+      "L'ionogramme mesure des sels mineraux du sang comme le sodium, le potassium ou le chlore, utiles pour evaluer certains equilibres de l'organisme.",
+  },
+  {
+    pattern: /incidence/i,
+    term: "incidence radiographique",
+    explanation:
+      "Une incidence radiographique correspond a un angle ou une position de prise de vue. Plusieurs incidences peuvent etre necessaires pour voir une zone sous differents angles.",
+  },
+  {
+    pattern: /antalgique|opio[iï]de/i,
+    term: "antalgique opioide",
+    explanation:
+      "Un antalgique est un medicament contre la douleur. Opioide designe une famille d'antalgiques puissants, dont l'usage exact doit etre precise par la clinique.",
+  },
+];
+
+function addPlainLanguageDefinitions(line: PreviewPayload["lines"][number]) {
+  const searchable = [
+    line.original_label,
+    line.category,
+    line.explanation,
+    line.source_quote,
+    ...line.explicit_elements,
+    ...line.elements_to_confirm,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const definitions = VULGARIZATION_TERMS.filter((item) => item.pattern.test(searchable)).map((item) => item.explanation);
+  if (!definitions.length) return line;
+
+  const existingExplanation = line.explanation.trim();
+  const missingDefinitions = definitions.filter((definition) => !existingExplanation.toLowerCase().includes(definition.slice(0, 24).toLowerCase()));
+  if (!missingDefinitions.length) return line;
+
+  return {
+    ...line,
+    explanation: `${existingExplanation} En clair : ${missingDefinitions.join(" ")}`,
+  };
+}
+
 function buildFallbackPreview(input: GeneratePreviewInput): PreviewPayload {
   const context = input.userDescription?.trim();
   const question = input.primaryQuestion?.trim();
@@ -169,7 +280,7 @@ function sanitizePreview(preview: PreviewPayload, sourceText: string, ocrConfide
     const elementsToConfirm = line.elements_to_confirm.map((item) =>
       sanitizeNarrative(item, "Demandez à la clinique de préciser ce qui est inclus dans cette prestation.")
     );
-    return {
+    return addPlainLanguageDefinitions({
       ...line,
       amount: amountIsValid ? line.amount : null,
       explanation,
@@ -184,7 +295,7 @@ function sanitizePreview(preview: PreviewPayload, sourceText: string, ocrConfide
         : line.clarification
           ? sanitizeNarrative(line.clarification, "Demandez à la clinique de préciser ce qui est inclus dans cette prestation.")
           : null,
-    };
+    });
   });
   const totalAmount = preview.total_amount !== null && isAmountPresent(sourceAmounts, preview.total_amount) ? preview.total_amount : null;
   const warnings = unique([
@@ -219,7 +330,7 @@ const requestedShape = {
       amount: null,
       quantity: null,
       unit_price: null,
-      explanation: "vulgarisation neutre et précise du terme",
+      explanation: "vulgarisation neutre, précise et compréhensible par un propriétaire non médical ; développe et explique les abréviations",
       explicit_elements: ["ce qui est clairement écrit pour cette ligne"],
       elements_to_confirm: ["ce que le document ne précise pas"],
       suggested_question: "question coopérative directement liée à cette ligne",
@@ -299,6 +410,10 @@ Règles absolues :
 - source_quote doit être un court extrait strictement présent dans le texte OCR ;
 - explicit_elements contient seulement ce qui est écrit ;
 - elements_to_confirm contient seulement les informations absentes ou ambiguës ;
+- explanation doit d'abord expliquer le terme en langage courant, pour quelqu'un qui ne connaît pas le vocabulaire vétérinaire ;
+- toute abréviation visible doit être développée et expliquée simplement : TPLO, CRP, NFS, IV, PU, HT, TTC, TVA, etc. ;
+- ne laisse jamais un sigle technique sans définition dans explanation ;
+- évite les phrases génériques du type "prestation mentionnée dans le document" lorsqu'un terme concret est lisible ;
 - reading_status vaut clear, uncertain, missing ou possibly_included ;
 - questions coopératives, spécifiques et non accusatoires ;
 - aucun raisonnement ni markdown hors JSON.`;
