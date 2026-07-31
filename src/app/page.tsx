@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
 type IconProps = { className?: string };
 
@@ -84,7 +85,17 @@ const faqItems = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const signedIn = Boolean(user);
+  const primaryHref = "/analyser";
+  const primaryLabel = signedIn ? "Ajouter un document" : "Voir mon aperçu gratuit";
+  const secondaryHref = signedIn ? "/dashboard" : "#exemple";
+  const secondaryLabel = signedIn ? "Ouvrir mon espace" : "Voir un exemple d’explication";
+
   return (
     <main className="overflow-hidden bg-[#f4f7f4] text-[#173b35]">
       <header className="relative z-30 border-b border-[#dce7e2] bg-white/95 backdrop-blur">
@@ -97,8 +108,12 @@ export default function HomePage() {
             </div>
           </Link>
           <nav className="flex items-center gap-3">
-            <Link href="/connexion" className="hidden text-sm font-semibold text-[#45665f] hover:text-[#0c5b50] sm:block">Mon espace</Link>
-            <Link href="/analyser" className="rounded-full bg-[#0c5b50] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_9px_25px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">Voir mon aperçu gratuit</Link>
+            <Link href={signedIn ? "/dashboard" : "/connexion"} className="hidden text-sm font-semibold text-[#45665f] hover:text-[#0c5b50] sm:block">
+              {signedIn ? "Tableau de bord" : "Mon espace"}
+            </Link>
+            <Link href={primaryHref} className="rounded-full bg-[#0c5b50] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_9px_25px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
+              {primaryLabel}
+            </Link>
           </nav>
         </div>
       </header>
@@ -118,10 +133,12 @@ export default function HomePage() {
               Ajoutez le devis ou la facture reçu de la clinique. Vous verrez à quoi correspondent les principales lignes et quelles questions poser ensuite.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/analyser" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0c5b50] px-6 py-4 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(12,91,80,0.24)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
-                Voir mon aperçu gratuit <ArrowIcon />
+              <Link href={primaryHref} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0c5b50] px-6 py-4 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(12,91,80,0.24)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
+                {primaryLabel} <ArrowIcon />
               </Link>
-              <Link href="#exemple" className="inline-flex items-center justify-center rounded-full border border-[#bfd3cc] bg-white/85 px-6 py-4 text-sm font-semibold text-[#315f57] hover:bg-white">Voir un exemple d’explication</Link>
+              <Link href={secondaryHref} className="inline-flex items-center justify-center rounded-full border border-[#bfd3cc] bg-white/85 px-6 py-4 text-sm font-semibold text-[#315f57] hover:bg-white">
+                {secondaryLabel}
+              </Link>
             </div>
             <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#6c837d]">
               <span className="inline-flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 text-[#0c5b50]" /> Aucun diagnostic ni avis sur les soins</span>
@@ -203,7 +220,9 @@ export default function HomePage() {
               <ul className="mt-6 space-y-3 text-sm font-semibold text-[#526f68]">
                 {["Rapport complet", "Questions personnalisées", "Relecture humaine", "Ajout à la fiche de l’animal"].map((item) => <li key={item} className="flex gap-2"><CheckIcon className="mt-0.5 shrink-0 text-[#0c5b50]" /> {item}</li>)}
               </ul>
-              <Link href="/analyser" className="mt-8 flex w-full justify-center rounded-full border border-[#bfd3cc] px-5 py-3.5 text-sm font-semibold text-[#315f57] hover:bg-[#f1f6f4]">Voir d’abord mon aperçu gratuit</Link>
+              <Link href={primaryHref} className="mt-8 flex w-full justify-center rounded-full border border-[#bfd3cc] px-5 py-3.5 text-sm font-semibold text-[#315f57] hover:bg-[#f1f6f4]">
+                {signedIn ? "Ajouter un document" : "Voir d’abord mon aperçu gratuit"}
+              </Link>
             </article>
 
             <article className="relative overflow-hidden rounded-[28px] border-2 border-[#79ae9e] bg-[#edf7f3] p-7 shadow-[0_22px_65px_rgba(31,78,67,0.12)]">
@@ -214,7 +233,9 @@ export default function HomePage() {
               <ul className="mt-6 space-y-3 text-sm font-semibold text-[#526f68]">
                 {["1 nouveau crédit chaque mois", "Jusqu’à 3 crédits disponibles", "Crédits utilisables pour tous vos animaux", "Comparaisons, poids et rappels", "Arrêt possible à tout moment"].map((item) => <li key={item} className="flex gap-2"><CheckIcon className="mt-0.5 shrink-0 text-[#0c5b50]" /> {item}</li>)}
               </ul>
-              <Link href="/analyser" className="mt-8 flex w-full justify-center rounded-full bg-[#0c5b50] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] hover:bg-[#084d44]">Voir mon aperçu gratuit</Link>
+              <Link href={primaryHref} className="mt-8 flex w-full justify-center rounded-full bg-[#0c5b50] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(12,91,80,0.2)] hover:bg-[#084d44]">
+                {primaryLabel}
+              </Link>
             </article>
           </div>
         </div>
@@ -240,10 +261,18 @@ export default function HomePage() {
 
       <section className="px-5 pb-20 sm:px-8 sm:pb-28">
         <div className="mx-auto max-w-6xl rounded-[34px] bg-[#123f38] px-6 py-12 text-center text-white shadow-[0_28px_75px_rgba(18,63,56,0.2)] sm:px-12 sm:py-16">
-          <p className="text-xs font-semibold uppercase text-[#9fcfc1]">Vous pouvez commencer gratuitement</p>
-          <h2 className="mx-auto mt-4 max-w-3xl font-serif text-4xl sm:text-5xl">Ajoutez votre document et consultez les premières explications.</h2>
-          <Link href="/analyser" className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-4 text-sm font-semibold text-[#123f38] hover:bg-[#edf5f2]">Voir mon aperçu gratuit <ArrowIcon /></Link>
-          <p className="mt-4 text-xs text-[#abc8c0]">Vous verrez déjà deux lignes expliquées et deux questions à poser.</p>
+          <p className="text-xs font-semibold uppercase text-[#9fcfc1]">
+            {signedIn ? "Depuis votre espace" : "Vous pouvez commencer gratuitement"}
+          </p>
+          <h2 className="mx-auto mt-4 max-w-3xl font-serif text-4xl sm:text-5xl">
+            {signedIn ? "Ajoutez un nouveau document à la fiche de votre animal." : "Ajoutez votre document et consultez les premières explications."}
+          </h2>
+          <Link href={primaryHref} className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-4 text-sm font-semibold text-[#123f38] hover:bg-[#edf5f2]">
+            {primaryLabel} <ArrowIcon />
+          </Link>
+          <p className="mt-4 text-xs text-[#abc8c0]">
+            {signedIn ? "Vos analyses resteront rattachées à votre compte." : "Vous verrez déjà deux lignes expliquées et deux questions à poser."}
+          </p>
         </div>
       </section>
 
