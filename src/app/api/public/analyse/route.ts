@@ -339,6 +339,21 @@ export async function POST(request: Request) {
         { status: 409 }
       );
     }
+    if (error instanceof Error && error.message === "PIPELINE_DEEPSEEK_FAILED") {
+      console.error("[PUBLIC_ANALYSE]", error.message);
+      if (cleanup) {
+        const supabase = createAdminClient();
+        await supabase.storage.from("case-documents").remove([cleanup.storagePath]);
+        await supabase.from("cases").delete().eq("id", cleanup.caseId);
+      }
+      return NextResponse.json(
+        {
+          error:
+            "L'analyse IA détaillée n'a pas pu être finalisée. Aucun rapport générique n'a été créé ; réessayez dans quelques instants.",
+        },
+        { status: 502 }
+      );
+    }
     console.error("[PUBLIC_ANALYSE]", error instanceof Error ? error.message : "unknown");
     if (cleanup) {
       const supabase = createAdminClient();
