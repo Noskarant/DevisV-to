@@ -11,12 +11,12 @@ export const PRODUCT_PRICES = {
   single: {
     amount: 890,
     label: "Analyse unique DevisVéto",
-    envKeys: ["STRIPE_SINGLE_PRICE_ID", "STRIPE_PRICE_SINGLE"],
+    envKeys: ["STRIPE_PRICE_REPORT"],
   },
   monthly: {
     amount: 690,
     label: "DevisVéto Plus",
-    envKeys: ["STRIPE_MONTHLY_PRICE_ID", "STRIPE_PRICE_MONTHLY"],
+    envKeys: ["STRIPE_PRICE_PLUS"],
   },
   pack3: {
     amount: 1790,
