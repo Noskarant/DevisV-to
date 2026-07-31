@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { findOrCreateProfileByEmail } from "@/lib/public-preview/data";
+import { findOrCreateProfileByEmail, findProfileByEmail } from "@/lib/public-preview/data";
 import { generatePreview } from "@/lib/public-preview/generate";
 import { sendPreviewReadyEmail } from "@/lib/email/send";
 
@@ -118,7 +118,17 @@ export async function POST(request: Request) {
       if (profileError || !ownProfile) throw new Error(profileError?.message ?? "Profil connecté introuvable.");
       profile = ownProfile;
     } else {
-      profile = await findOrCreateProfileByEmail(input.email);
+      const existingProfile = await findProfileByEmail(input.email);
+      if (existingProfile) {
+        return NextResponse.json(
+          {
+            error:
+              "Un espace existe déjà pour cette adresse. Connectez-vous avant d'ajouter un document à ce compte.",
+          },
+          { status: 409 }
+        );
+      }
+      profile = await findOrCreateProfileByEmail(input.email, { allowExisting: false });
     }
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -315,6 +325,15 @@ export async function POST(request: Request) {
     await sendPreviewReadyEmail(profile.email, pet.name, `${appUrl}/apercu/${token}`);
     return NextResponse.json({ url: `/apercu/${token}`, revisionIncluded: revisionEligible });
   } catch (error) {
+    if (error instanceof Error && error.message === "ACCOUNT_REQUIRES_LOGIN") {
+      return NextResponse.json(
+        {
+          error:
+            "Un espace existe déjà pour cette adresse. Connectez-vous avant d'ajouter un document à ce compte.",
+        },
+        { status: 409 }
+      );
+    }
     console.error("[PUBLIC_ANALYSE]", error instanceof Error ? error.message : "unknown");
     if (cleanup) {
       const supabase = createAdminClient();

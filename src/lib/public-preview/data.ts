@@ -1,8 +1,34 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function findOrCreateProfileByEmail(email: string) {
+const PUBLIC_TOKEN_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isValidPublicToken(token: string) {
+  return PUBLIC_TOKEN_PATTERN.test(token);
+}
+
+export async function findProfileByEmail(email: string) {
   const supabase = createAdminClient();
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return null;
+
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .ilike("email", normalizedEmail)
+    .limit(1)
+    .maybeSingle();
+
+  return existingProfile;
+}
+
+export async function findOrCreateProfileByEmail(
+  email: string,
+  options: { allowExisting?: boolean } = {}
+) {
+  const supabase = createAdminClient();
+  const allowExisting = options.allowExisting ?? true;
   const normalizedEmail = email.trim().toLowerCase();
   const { data: existingProfile } = await supabase
     .from("profiles")
@@ -10,7 +36,10 @@ export async function findOrCreateProfileByEmail(email: string) {
     .ilike("email", normalizedEmail)
     .limit(1)
     .maybeSingle();
-  if (existingProfile) return existingProfile;
+  if (existingProfile) {
+    if (!allowExisting) throw new Error("ACCOUNT_REQUIRES_LOGIN");
+    return existingProfile;
+  }
 
   let userId: string | null = null;
   const { data: created, error: createError } = await supabase.auth.admin.createUser({
@@ -20,6 +49,7 @@ export async function findOrCreateProfileByEmail(email: string) {
   if (created.user) {
     userId = created.user.id;
   } else if (createError) {
+    if (!allowExisting) throw new Error("ACCOUNT_REQUIRES_LOGIN");
     const { data: listed } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
     userId = listed.users.find((user) => user.email?.toLowerCase() === normalizedEmail)?.id ?? null;
   }
@@ -35,6 +65,8 @@ export async function findOrCreateProfileByEmail(email: string) {
 }
 
 export async function resolveCaseIdByPublicToken(token: string) {
+  if (!isValidPublicToken(token)) return null;
+
   const supabase = createAdminClient();
   const { data: event } = await supabase
     .from("analytics_events")

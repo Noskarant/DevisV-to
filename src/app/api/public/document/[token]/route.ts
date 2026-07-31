@@ -12,6 +12,36 @@ export async function GET(
   if (!caseId) return Response.json({ error: "Document introuvable." }, { status: 404 });
 
   const supabase = createAdminClient();
+  const [{ data: caseRow }, { data: payments }] = await Promise.all([
+    supabase
+      .from("cases")
+      .select("payment_status")
+      .eq("id", caseId)
+      .maybeSingle(),
+    supabase
+      .from("payments")
+      .select("status")
+      .eq("case_id", caseId)
+      .eq("status", "succeeded")
+      .order("created_at", { ascending: false })
+      .limit(1),
+  ]);
+
+  const paid = caseRow?.payment_status === "succeeded" || Boolean(payments?.length);
+  if (!paid) {
+    return Response.json(
+      { error: "Le document original est disponible avec le rapport complet." },
+      {
+        status: 403,
+        headers: {
+          "Cache-Control": "private, no-store, max-age=0",
+          "X-Robots-Tag": "noindex, nofollow, noarchive",
+          "X-Content-Type-Options": "nosniff",
+        },
+      }
+    );
+  }
+
   const { data: document } = await supabase
     .from("case_documents")
     .select("storage_path, original_filename, mime_type")
