@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 type IconProps = { className?: string };
@@ -91,10 +92,13 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
   const signedIn = Boolean(user);
+
+  if (signedIn) redirect("/dashboard");
+
   const primaryHref = "/analyser";
-  const primaryLabel = signedIn ? "Ajouter un document" : "Voir mon aperçu gratuit";
-  const secondaryHref = signedIn ? "/dashboard" : "#exemple";
-  const secondaryLabel = signedIn ? "Ouvrir mon espace" : "Voir un exemple d’explication";
+  const primaryLabel = "Voir mon aperçu gratuit";
+  const secondaryHref = "#exemple";
+  const secondaryLabel = "Voir un exemple d’explication";
 
   return (
     <main className="overflow-hidden bg-[#f4f7f4] text-[#173b35]">
@@ -108,9 +112,7 @@ export default async function HomePage() {
             </div>
           </Link>
           <nav className="flex items-center gap-3">
-            <Link href={signedIn ? "/dashboard" : "/connexion"} className="hidden text-sm font-semibold text-[#45665f] hover:text-[#0c5b50] sm:block">
-              {signedIn ? "Tableau de bord" : "Mon espace"}
-            </Link>
+            <Link href="/connexion" className="hidden text-sm font-semibold text-[#45665f] hover:text-[#0c5b50] sm:block">Mon espace</Link>
             <Link href={primaryHref} className="rounded-full bg-[#0c5b50] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_9px_25px_rgba(12,91,80,0.2)] transition hover:-translate-y-0.5 hover:bg-[#084d44]">
               {primaryLabel}
             </Link>
@@ -221,7 +223,7 @@ export default async function HomePage() {
                 {["Rapport complet", "Questions personnalisées", "Relecture humaine", "Ajout à la fiche de l’animal"].map((item) => <li key={item} className="flex gap-2"><CheckIcon className="mt-0.5 shrink-0 text-[#0c5b50]" /> {item}</li>)}
               </ul>
               <Link href={primaryHref} className="mt-8 flex w-full justify-center rounded-full border border-[#bfd3cc] px-5 py-3.5 text-sm font-semibold text-[#315f57] hover:bg-[#f1f6f4]">
-                {signedIn ? "Ajouter un document" : "Voir d’abord mon aperçu gratuit"}
+                Voir d’abord mon aperçu gratuit
               </Link>
             </article>
 
@@ -262,16 +264,16 @@ export default async function HomePage() {
       <section className="px-5 pb-20 sm:px-8 sm:pb-28">
         <div className="mx-auto max-w-6xl rounded-[34px] bg-[#123f38] px-6 py-12 text-center text-white shadow-[0_28px_75px_rgba(18,63,56,0.2)] sm:px-12 sm:py-16">
           <p className="text-xs font-semibold uppercase text-[#9fcfc1]">
-            {signedIn ? "Depuis votre espace" : "Vous pouvez commencer gratuitement"}
+            Vous pouvez commencer gratuitement
           </p>
           <h2 className="mx-auto mt-4 max-w-3xl font-serif text-4xl sm:text-5xl">
-            {signedIn ? "Ajoutez un nouveau document à la fiche de votre animal." : "Ajoutez votre document et consultez les premières explications."}
+            Ajoutez votre document et consultez les premières explications.
           </h2>
           <Link href={primaryHref} className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-4 text-sm font-semibold text-[#123f38] hover:bg-[#edf5f2]">
             {primaryLabel} <ArrowIcon />
           </Link>
           <p className="mt-4 text-xs text-[#abc8c0]">
-            {signedIn ? "Vos analyses resteront rattachées à votre compte." : "Vous verrez déjà deux lignes expliquées et deux questions à poser."}
+            Vous verrez déjà deux lignes expliquées et deux questions à poser.
           </p>
         </div>
       </section>
