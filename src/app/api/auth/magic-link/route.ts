@@ -60,7 +60,14 @@ function actionLinkFromGenerateLink(data: unknown) {
 
 export async function POST(request: NextRequest) {
   try {
-    const parsed = inputSchema.safeParse(await request.json());
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
+    }
+
+    const parsed = inputSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Adresse e-mail invalide." }, { status: 400 });
     }
