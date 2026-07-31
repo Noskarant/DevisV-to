@@ -133,7 +133,7 @@ export default async function DashboardPage() {
               </Link>
               {hasPets && (
                 <span className="rounded-full bg-white/10 px-5 py-3 text-sm font-semibold text-[#d5e4e0]">
-                  {pets?.length ?? 0} animal{(pets?.length ?? 0) > 1 ? "aux" : ""} · {cases?.length ?? 0} document{(cases?.length ?? 0) > 1 ? "s" : ""}
+                  {pets?.length ?? 0} {(pets?.length ?? 0) > 1 ? "animaux" : "animal"} · {cases?.length ?? 0} document{(cases?.length ?? 0) > 1 ? "s" : ""}
                 </span>
               )}
             </div>
