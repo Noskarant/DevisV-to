@@ -68,7 +68,12 @@ function isRevisionEligible(previousCase: {
 export async function POST(request: Request) {
   let cleanup: { caseId: string; storagePath: string } | null = null;
   try {
-    const formData = await request.formData();
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch {
+      return NextResponse.json({ error: "Formulaire invalide." }, { status: 400 });
+    }
     const file = formData.get("file");
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "Ajoutez un devis ou une facture." }, { status: 400 });
