@@ -96,6 +96,109 @@ function normalizeAmount(raw: string) {
   return Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
 }
 
+function cleanOcrLine(value: string) {
+  return value
+    .replace(/^\s*[-*|#>]+\s*/g, "")
+    .replace(/\s*\|\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractLineAmounts(line: string) {
+  const amounts = new Set<number>();
+  const patterns = [
+    /(\d{1,6}(?:[ .]\d{3})*[,.]\d{2})\s*(?:€|EUR|TTC|HT)/giu,
+    /(?:€|EUR)\s*(\d{1,6}(?:[ .]\d{3})*[,.]\d{2})/giu,
+    /\b(\d{1,6}[,.]\d{2})\b/g,
+  ];
+  for (const pattern of patterns) {
+    for (const match of line.matchAll(pattern)) {
+      const amount = normalizeAmount(match[1]);
+      if (amount !== null) amounts.add(amount);
+    }
+  }
+  return [...amounts];
+}
+
+function labelFromAmountLine(line: string) {
+  return cleanOcrLine(line)
+    .replace(/(?:€|EUR)\s*\d{1,6}(?:[ .]\d{3})*[,.]\d{2}/giu, "")
+    .replace(/\d{1,6}(?:[ .]\d{3})*[,.]\d{2}\s*(?:€|EUR|TTC|HT)?/giu, "")
+    .replace(/\b(?:qt[eé]|quantit[eé]|prix|unitaire|total|ttc|ht|tva)\b\s*:*/giu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 140);
+}
+
+function buildOcrDerivedPreview(input: GeneratePreviewInput, sourceText: string): PreviewPayload {
+  const seen = new Set<string>();
+  const pricedLines = sourceText
+    .split("\n")
+    .map(cleanOcrLine)
+    .filter((line) => line && !line.startsWith("--- PAGE"))
+    .flatMap((line) => {
+      const amounts = extractLineAmounts(line);
+      const amount = amounts.at(-1) ?? null;
+      const label = labelFromAmountLine(line);
+      if (amount === null || label.length < 3) return [];
+      const key = `${label.toLowerCase()}-${amount}`;
+      if (seen.has(key)) return [];
+      seen.add(key);
+      return [{ label, amount, source: line }];
+    })
+    .filter((line) => !/^(total|sous total|net a payer|net à payer|montant total)$/i.test(line.label))
+    .slice(0, 18);
+
+  const totalCandidate = sourceText
+    .split("\n")
+    .map(cleanOcrLine)
+    .filter((line) => /\b(total|net\s+[aà]\s+payer|montant\s+total|ttc)\b/i.test(line))
+    .flatMap(extractLineAmounts)
+    .at(-1) ?? null;
+
+  if (pricedLines.length === 0) return buildFallbackPreview(input);
+
+  const questions = [
+    "Pouvez-vous me confirmer ce qui est exactement inclus dans les lignes principales du document ?",
+    "Y a-t-il des éléments susceptibles de faire évoluer le montant indiqué ?",
+    "Certaines prestations sont-elles conditionnelles selon l'état de l'animal le jour des soins ?",
+  ];
+
+  return previewSchema.parse({
+    intervention: `${input.documentType === "devis" ? "Devis" : "Facture"} vétérinaire de ${input.petName}`,
+    total_amount: totalCandidate,
+    currency: "EUR",
+    summary:
+      "Le document a été lu automatiquement et les lignes tarifées les plus lisibles ont été reprises. Certaines explications restent générales car la génération détaillée n'a pas pu être finalisée sur ce document.",
+    categories: ["Lignes tarifées", "Points à confirmer"],
+    lines: pricedLines.map((line) => ({
+      original_label: line.label,
+      category: "Ligne du document",
+      amount: line.amount,
+      quantity: null,
+      unit_price: null,
+      explanation: SAFE_EXPLANATION,
+      explicit_elements: [`Ligne détectée dans le document : ${line.source.slice(0, 180)}`],
+      elements_to_confirm: ["Demander à la clinique ce qui est inclus précisément dans cette ligne."],
+      suggested_question: `Pouvez-vous me préciser ce qui est inclus dans « ${line.label} » ?`,
+      source_page: null,
+      source_quote: line.source.slice(0, 420),
+      reading_status: "uncertain",
+      confidence: "medium",
+      clarification: "Le libellé et le montant ont été détectés automatiquement ; le contenu exact reste à confirmer avec la clinique.",
+    })),
+    clarifications: ["Vérifier les inclusions exactes des principales lignes tarifées."],
+    questions,
+    variation_factors: ["Détails inclus ou non dans chaque prestation", "Quantités, durées ou conditions de réalisation"],
+    price_context: SAFE_PRICE_CONTEXT,
+    warnings: [
+      "Cet aperçu explique un document et ne constitue pas un avis vétérinaire.",
+      "La lecture détaillée a utilisé un mode de secours à partir du texte OCR.",
+    ],
+    document_readability: pricedLines.length >= 2 ? "partial" : "insufficient",
+  });
+}
+
 function coerceNumber(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value === "number") return Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
@@ -365,11 +468,18 @@ export async function generatePreview(input: GeneratePreviewInput): Promise<Prev
     documentType: input.documentType,
     emergencyContext: input.emergencyContext,
   });
+  const preview =
+    generated ??
+    (mockEnabled ? buildFallbackPreview(input) : buildOcrDerivedPreview(input, anonymizedDocument.text));
   if (!generated) {
-    if (mockEnabled) return buildFallbackPreview(input);
-    throw new Error("PIPELINE_DEEPSEEK_FAILED");
+    console.warn("[PREVIEW] DeepSeek fallback used", {
+      mode: mockEnabled ? "mock" : "ocr_derived",
+      filename: input.filename,
+      lineCount: preview.lines.length,
+      readability: preview.document_readability,
+    });
   }
-  const sanitized = sanitizePreview(generated, anonymizedDocument.text, ocr.averageConfidence, input.emergencyContext);
+  const sanitized = sanitizePreview(preview, anonymizedDocument.text, ocr.averageConfidence, input.emergencyContext);
   const enriched = enrichPreviewWithTraceability({
     preview: sanitized,
     sourceText: anonymizedDocument.text,
