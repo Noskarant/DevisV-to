@@ -13,10 +13,10 @@ export function FeedbackRequestEmail({ petName }: FeedbackRequestEmailProps) {
   const animal = petName?.trim() || "votre animal";
 
   return (
-    <EmailLayout appUrl={appUrl()} preview="Votre avis aide a ameliorer DevisVeto." title="Votre avis nous interesse">
+    <EmailLayout appUrl={appUrl()} preview="Votre avis aide à améliorer DevisVéto." title="Votre avis nous intéresse">
       <Text style={emailText}>Bonjour,</Text>
       <Text style={emailText}>
-        Vous avez consulte votre explication du document de {animal}. Votre retour nous aide a rendre
+        Vous avez consulté votre explication du document de {animal}. Votre retour nous aide à rendre
         les analyses plus claires et plus utiles.
       </Text>
       <InfoCard title="Merci">
@@ -36,9 +36,9 @@ export function feedbackRequestEmail(props: FeedbackRequestEmailProps): EmailTem
     subject: EMAIL_SUBJECTS.feedbackRequest,
     react: <FeedbackRequestEmail {...props} />,
     text: lines([
-      "Votre avis sur votre rapport DevisVeto",
-      `Vous avez consulte l'explication du document de ${animal}.`,
-      "Votre retour nous aide a rendre les analyses plus claires.",
+      "Votre avis sur votre rapport DevisVéto",
+      `Vous avez consulté l’explication du document de ${animal}.`,
+      "Votre retour nous aide à rendre les analyses plus claires.",
     ]),
   };
 }

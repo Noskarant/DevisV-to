@@ -17,15 +17,15 @@ export function SubscriptionCanceledEmail(props: SubscriptionCanceledEmailProps)
   const accessEndsAt = formatDate(props.accessEndsAt);
 
   return (
-    <EmailLayout appUrl={baseUrl} preview="Votre abonnement DevisVeto a ete annule." title="Abonnement annule">
+    <EmailLayout appUrl={baseUrl} preview="Votre abonnement DevisVéto a été annulé." title="Abonnement annulé">
       <Text style={emailText}>Bonjour,</Text>
-      <Text style={emailText}>Votre abonnement DevisVeto a bien ete annule.</Text>
+      <Text style={emailText}>Votre abonnement DevisVéto a bien été annulé.</Text>
       <InfoCard title="Acces">
         {accessEndsAt
-          ? `Votre acces Plus reste disponible jusqu au ${accessEndsAt}.`
-          : "Votre espace DevisVeto reste accessible pour retrouver les informations conservees dans votre compte."}
+          ? `Votre accès Plus reste disponible jusqu’au ${accessEndsAt}.`
+          : "Votre espace DevisVéto reste accessible pour retrouver les informations conservées dans votre compte."}
       </InfoCard>
-      <EmailButton href={url}>Acceder a mon espace</EmailButton>
+      <EmailButton href={url}>Accéder à mon espace</EmailButton>
       <Text style={emailSmallText}>
         Lien de secours :{" "}
         <Link href={url} style={{ color: "#0c5b50" }}>
@@ -50,10 +50,10 @@ export function subscriptionCanceledEmail(props: SubscriptionCanceledEmailProps)
     subject: EMAIL_SUBJECTS.subscriptionCanceled,
     react: <SubscriptionCanceledEmail {...props} dashboardUrl={url} />,
     text: lines([
-      "Confirmation d'annulation de votre abonnement",
-      "Votre abonnement DevisVeto a bien ete annule.",
-      accessEndsAt ? `Votre acces Plus reste disponible jusqu'au ${accessEndsAt}.` : null,
-      `Acceder a mon espace : ${url}`,
+      "Confirmation d’annulation de votre abonnement",
+      "Votre abonnement DevisVéto a bien été annulé.",
+      accessEndsAt ? `Votre accès Plus reste disponible jusqu’au ${accessEndsAt}.` : null,
+      `Accéder à mon espace : ${url}`,
     ]),
   };
 }

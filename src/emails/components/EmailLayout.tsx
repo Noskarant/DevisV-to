@@ -51,7 +51,7 @@ export function EmailLayout({ appUrl, preview, title, children }: EmailLayoutPro
                 margin: "0 0 4px",
               }}
             >
-              DevisVeto
+              DevisVéto
             </Text>
             <Text
               style={{

@@ -9,6 +9,7 @@ import { reportReadyEmail } from "@/emails/ReportReadyEmail";
 import { subscriptionActivatedEmail } from "@/emails/SubscriptionActivatedEmail";
 import { subscriptionCanceledEmail } from "@/emails/SubscriptionCanceledEmail";
 import { dataDeletionConfirmedEmail } from "@/emails/DataDeletionConfirmedEmail";
+import { magicLinkEmail } from "@/emails/MagicLinkEmail";
 import { welcomeEmail } from "@/emails/WelcomeEmail";
 import { appUrl } from "@/emails/utils";
 import { sendEmail } from "./resend";
@@ -68,6 +69,10 @@ export function sendWelcomeEmail(to: string) {
     to,
     ...welcomeEmail({ email: to, dashboardUrl: `${appUrl()}/dashboard` }),
   });
+}
+
+export function sendMagicLinkEmail(to: string, loginUrl: string) {
+  return sendEmail({ to, ...magicLinkEmail({ loginUrl }) });
 }
 
 export function sendSubscriptionActivatedEmail(

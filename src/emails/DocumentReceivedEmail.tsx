@@ -12,14 +12,14 @@ export type DocumentReceivedEmailProps = {
 export function DocumentReceivedEmail({ petName }: DocumentReceivedEmailProps) {
   const animal = petName?.trim() || "votre animal";
   return (
-    <EmailLayout appUrl={appUrl()} preview="Votre document a bien ete recu." title="Document recu">
+    <EmailLayout appUrl={appUrl()} preview="Votre document a bien été reçu." title="Document reçu">
       <Text style={emailText}>Bonjour,</Text>
       <Text style={emailText}>
-        Nous avons bien recu le document concernant {animal}. Il est maintenant rattache a votre
-        espace DevisVeto.
+        Nous avons bien reçu le document concernant {animal}. Il est maintenant rattaché à votre
+        espace DevisVéto.
       </Text>
       <InfoCard title="Suite du parcours">
-        Vous recevrez un message des que votre analyse ou votre rapport sera disponible.
+        Vous recevrez un message dès que votre analyse ou votre rapport sera disponible.
       </InfoCard>
     </EmailLayout>
   );
@@ -35,9 +35,9 @@ export function documentReceivedEmail(props: DocumentReceivedEmailProps): EmailT
     subject: EMAIL_SUBJECTS.documentReceived,
     react: <DocumentReceivedEmail {...props} />,
     text: lines([
-      "Document recu",
-      `Nous avons bien recu le document concernant ${animal}.`,
-      "Il est maintenant rattache a votre espace DevisVeto.",
+      "Document reçu",
+      `Nous avons bien reçu le document concernant ${animal}.`,
+      "Il est maintenant rattaché à votre espace DevisVéto.",
     ]),
   };
 }

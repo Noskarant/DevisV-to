@@ -16,13 +16,13 @@ export function ReportReadyEmail({ petName, reportUrl }: ReportReadyEmailProps) 
   const url = absoluteUrl(reportUrl, "/dashboard");
 
   return (
-    <EmailLayout appUrl={appUrl()} preview="Votre rapport DevisVeto est disponible." title="Rapport disponible">
+    <EmailLayout appUrl={appUrl()} preview="Votre rapport DevisVéto est disponible." title="Rapport disponible">
       <Text style={emailText}>Bonjour,</Text>
       <Text style={emailText}>
-        Le rapport lie au document de {animal} est disponible dans votre espace.
+        Le rapport lié au document de {animal} est disponible dans votre espace.
       </Text>
       <InfoCard title="Dans le rapport" tone="success">
-        Vous retrouverez les explications, les points a confirmer et les questions utiles a poser a
+        Vous retrouverez les explications, les points à confirmer et les questions utiles à poser à
         la clinique.
       </InfoCard>
       <EmailButton href={url}>Consulter mon rapport</EmailButton>
@@ -50,10 +50,10 @@ export function reportReadyEmail(props: ReportReadyEmailProps): EmailTemplateRes
     subject: EMAIL_SUBJECTS.reportReady,
     react: <ReportReadyEmail {...props} reportUrl={url} />,
     text: lines([
-      "Votre rapport DevisVeto est pret",
-      `Le rapport lie au document de ${animal} est disponible.`,
+      "Votre rapport DevisVéto est prêt",
+      `Le rapport lié au document de ${animal} est disponible.`,
       `Consulter mon rapport : ${url}`,
-      "DevisVeto ne remplace pas l'avis de votre veterinaire.",
+      "DevisVéto ne remplace pas l’avis de votre vétérinaire.",
     ]),
   };
 }

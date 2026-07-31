@@ -7,14 +7,14 @@ import { appUrl, lines, type EmailTemplateResult } from "./utils";
 
 export function DataDeletionConfirmedEmail() {
   return (
-    <EmailLayout appUrl={appUrl()} preview="La suppression de vos donnees DevisVeto est confirmee." title="Donnees supprimees">
+    <EmailLayout appUrl={appUrl()} preview="La suppression de vos données DevisVéto est confirmée." title="Données supprimées">
       <Text style={emailText}>Bonjour,</Text>
       <Text style={emailText}>
-        Vos documents et donnees personnelles ont ete supprimes de DevisVeto, conformement a votre
+        Vos documents et données personnelles ont été supprimés de DevisVéto, conformément à votre
         demande.
       </Text>
       <InfoCard title="Confirmation" tone="success">
-        Cette confirmation concerne les donnees gerees par DevisVeto dans votre espace.
+        Cette confirmation concerne les données gérées par DevisVéto dans votre espace.
       </InfoCard>
     </EmailLayout>
   );
@@ -29,8 +29,8 @@ export function dataDeletionConfirmedEmail(): EmailTemplateResult {
     subject: EMAIL_SUBJECTS.dataDeletionConfirmed,
     react: <DataDeletionConfirmedEmail />,
     text: lines([
-      "Suppression de vos donnees - DevisVeto",
-      "Vos documents et donnees personnelles ont ete supprimes de DevisVeto, conformement a votre demande.",
+      "Suppression de vos données - DevisVéto",
+      "Vos documents et données personnelles ont été supprimés de DevisVéto, conformément à votre demande.",
     ]),
   };
 }

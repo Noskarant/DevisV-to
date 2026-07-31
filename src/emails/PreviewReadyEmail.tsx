@@ -17,15 +17,15 @@ export function PreviewReadyEmail({ petName, previewUrl }: PreviewReadyEmailProp
   const animal = petName?.trim() || "votre animal";
 
   return (
-    <EmailLayout appUrl={baseUrl} preview="Votre analyse DevisVeto est disponible." title="Votre analyse est prete">
+    <EmailLayout appUrl={baseUrl} preview="Votre analyse DevisVéto est disponible." title="Votre analyse est prête">
       <Text style={emailText}>Bonjour,</Text>
       <Text style={emailText}>
-        Votre analyse du document de {animal} est terminee. Les principales lignes ont ete organisees
-        pour vous aider a comprendre ce qui est prevu, ce qui manque et les questions utiles a poser.
+        Votre analyse du document de {animal} est terminée. Les principales lignes ont été organisées
+        pour vous aider à comprendre ce qui est prévu, ce qui manque et les questions utiles à poser.
       </Text>
       <InfoCard title="A retenir" tone="success">
-        Cette lecture reste strictement documentaire : elle aide a lire le devis ou la facture, sans
-        juger la necessite des soins ni remplacer la clinique.
+        Cette lecture reste strictement documentaire : elle aide à lire le devis ou la facture, sans
+        juger la nécessité des soins ni remplacer la clinique.
       </InfoCard>
       <EmailButton href={url}>Voir mon analyse</EmailButton>
       <Text style={emailSmallText}>
@@ -52,11 +52,11 @@ export function previewReadyEmail(props: PreviewReadyEmailProps): EmailTemplateR
     subject: EMAIL_SUBJECTS.previewReady,
     react: <PreviewReadyEmail {...props} previewUrl={url} />,
     text: lines([
-      "Votre analyse DevisVeto est prete",
-      `L'analyse du document de ${animal} est terminee.`,
-      "Les principales lignes ont ete organisees pour vous aider a comprendre le document et les questions a poser.",
+      "Votre analyse DevisVéto est prête",
+      `L’analyse du document de ${animal} est terminée.`,
+      "Les principales lignes ont été organisées pour vous aider à comprendre le document et les questions à poser.",
       `Voir mon analyse : ${url}`,
-      "DevisVeto ne remplace pas l'avis de votre veterinaire.",
+      "DevisVéto ne remplace pas l’avis de votre vétérinaire.",
     ]),
   };
 }

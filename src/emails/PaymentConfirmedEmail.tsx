@@ -28,22 +28,22 @@ export function PaymentConfirmedEmail(props: PaymentConfirmedEmailProps) {
   const animal = props.petName?.trim() || "votre animal";
   const amount = formatEuros(props.amountCents, props.currency || "eur");
   const date = formatDate(props.paidAt || new Date());
-  const product = props.productLabel?.trim() || "Analyse DevisVeto";
+  const product = props.productLabel?.trim() || "Analyse DevisVéto";
 
   return (
-    <EmailLayout appUrl={baseUrl} preview="Votre paiement DevisVeto est confirme." title="Paiement confirme">
+    <EmailLayout appUrl={baseUrl} preview="Votre paiement DevisVéto est confirmé." title="Paiement confirmé">
       <Text style={emailText}>Bonjour,</Text>
       <Text style={emailText}>
-        Votre paiement est confirme. Le rapport lie au document de {animal} est rattache a
+        Votre paiement est confirmé. Le rapport lié au document de {animal} est rattaché à
         votre espace.
       </Text>
       <InfoCard title="Recapitulatif" tone="success">
-        <Text style={{ margin: "0 0 6px" }}>Statut : confirme</Text>
+        <Text style={{ margin: "0 0 6px" }}>Statut : confirmé</Text>
         <Text style={{ margin: "0 0 6px" }}>Formule : {product}</Text>
         {amount ? <Text style={{ margin: "0 0 6px" }}>Montant : {amount}</Text> : null}
         {date ? <Text style={{ margin: "0" }}>Date : {date}</Text> : null}
       </InfoCard>
-      <EmailButton href={url}>Acceder a mon espace</EmailButton>
+      <EmailButton href={url}>Accéder à mon espace</EmailButton>
       <Text style={emailSmallText}>
         Lien de secours :{" "}
         <Link href={url} style={{ color: "#0c5b50" }}>
@@ -58,7 +58,7 @@ PaymentConfirmedEmail.PreviewProps = {
   petName: "Nala",
   amountCents: 890,
   currency: "eur",
-  productLabel: "Rapport DevisVeto",
+  productLabel: "Rapport DevisVéto",
   paidAt: "2026-07-31T10:30:00.000Z",
   dashboardUrl: "https://www.devisveto.fr/dashboard",
 } satisfies PaymentConfirmedEmailProps;
@@ -73,12 +73,12 @@ export function paymentConfirmedEmail(props: PaymentConfirmedEmailProps): EmailT
     subject: EMAIL_SUBJECTS.paymentConfirmed,
     react: <PaymentConfirmedEmail {...props} dashboardUrl={url} />,
     text: lines([
-      "Paiement confirme - DevisVeto",
-      `Statut : confirme`,
-      `Formule : ${props.productLabel?.trim() || "Analyse DevisVeto"}`,
+      "Paiement confirmé - DevisVéto",
+      `Statut : confirmé`,
+      `Formule : ${props.productLabel?.trim() || "Analyse DevisVéto"}`,
       amount ? `Montant : ${amount}` : null,
       date ? `Date : ${date}` : null,
-      `Acceder a mon espace : ${url}`,
+      `Accéder à mon espace : ${url}`,
     ]),
   };
 }

@@ -18,8 +18,8 @@ export function EmailFooter({ appUrl }: EmailFooterProps) {
           textAlign: "center",
         }}
       >
-        DevisVeto explique et organise les documents veterinaires. Le service ne remplace pas
-        un avis veterinaire.
+        DevisVéto explique et organise les documents vétérinaires. Le service ne remplace pas
+        un avis vétérinaire.
       </Text>
       <Text
         style={{
@@ -30,7 +30,7 @@ export function EmailFooter({ appUrl }: EmailFooterProps) {
           textAlign: "center",
         }}
       >
-        Besoin de support ? Contactez DevisVeto depuis{" "}
+        Besoin de support ? Contactez DevisVéto depuis{" "}
         <Link href={`${appUrl}/dashboard`} style={{ color: "#0c5b50", textDecoration: "underline" }}>
           votre espace
         </Link>

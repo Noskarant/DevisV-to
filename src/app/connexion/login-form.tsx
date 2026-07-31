@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 function MailIcon() {
   return (
@@ -56,22 +55,19 @@ export function LoginForm() {
     setErrorMessage("");
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          shouldCreateUser: true,
-        },
+      const response = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
 
-      if (error) {
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         console.error("[DevisVeto auth] magic link refused", {
-          name: error.name,
-          message: error.message,
-          status: error.status,
+          status: response.status,
+          message: payload?.error ?? "unknown",
         });
-        setErrorMessage(translateAuthError(error.message));
+        setErrorMessage(payload?.error ?? translateAuthError(""));
         setStatus("error");
         return;
       }

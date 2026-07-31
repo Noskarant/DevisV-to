@@ -106,7 +106,7 @@ export async function POST(request: Request) {
         if (email) {
           await trySendWebhookEmail("subscription_activated", () =>
             sendSubscriptionActivatedEmail(email, {
-              planLabel: "DevisVeto Plus",
+              planLabel: "DevisVéto Plus",
               startedAt: toIso(period.start),
               nextBillingAt: toIso(period.end),
             })

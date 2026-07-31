@@ -2,7 +2,7 @@ import "server-only";
 import type { ReactElement } from "react";
 import { Resend } from "resend";
 
-const FROM = "DevisVeto <contact@devisveto.fr>";
+const FROM = "DevisVéto <contact@devisveto.fr>";
 const FROM_DOMAIN = "devisveto.fr";
 
 type SendEmailInput = {

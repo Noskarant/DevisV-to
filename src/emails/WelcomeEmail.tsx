@@ -17,17 +17,17 @@ export function WelcomeEmail({ email, dashboardUrl }: WelcomeEmailProps) {
   const name = firstNameFromEmail(email);
 
   return (
-    <EmailLayout appUrl={baseUrl} preview="Votre espace DevisVeto est pret." title="Bienvenue sur DevisVeto">
+    <EmailLayout appUrl={baseUrl} preview="Votre espace DevisVéto est prêt." title="Bienvenue sur DevisVéto">
       <Text style={emailText}>Bonjour{name ? ` ${name}` : ""},</Text>
       <Text style={emailText}>
-        Votre espace est pret. Vous pouvez y retrouver vos animaux, vos documents et vos analyses
-        au meme endroit.
+        Votre espace est prêt. Vous pouvez y retrouver vos animaux, vos documents et vos analyses
+        au même endroit.
       </Text>
-      <InfoCard title="Prochaine etape">
-        Ajoutez un devis ou une facture veterinaire pour obtenir une lecture claire des lignes,
-        des montants et des points a verifier avec la clinique.
+      <InfoCard title="Prochaine étape">
+        Ajoutez un devis ou une facture vétérinaire pour obtenir une lecture claire des lignes,
+        des montants et des points à vérifier avec la clinique.
       </InfoCard>
-      <EmailButton href={url}>Acceder a mon espace</EmailButton>
+      <EmailButton href={url}>Accéder à mon espace</EmailButton>
       <Text style={emailSmallText}>
         Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :{" "}
         <Link href={url} style={{ color: "#0c5b50" }}>
@@ -51,12 +51,12 @@ export function welcomeEmail(props: WelcomeEmailProps): EmailTemplateResult {
     subject: EMAIL_SUBJECTS.welcome,
     react: <WelcomeEmail {...props} dashboardUrl={url} />,
     text: lines([
-      "Bienvenue sur DevisVeto",
+      "Bienvenue sur DevisVéto",
       `Bonjour${firstNameFromEmail(props.email) ? ` ${firstNameFromEmail(props.email)}` : ""},`,
-      "Votre espace est pret. Vous pouvez y retrouver vos animaux, vos documents et vos analyses.",
-      "Prochaine etape : ajoutez un devis ou une facture veterinaire.",
-      `Acceder a mon espace : ${url}`,
-      "DevisVeto explique les documents veterinaires et ne remplace pas l'avis de votre veterinaire.",
+      "Votre espace est prêt. Vous pouvez y retrouver vos animaux, vos documents et vos analyses.",
+      "Prochaine étape : ajoutez un devis ou une facture vétérinaire.",
+      `Accéder à mon espace : ${url}`,
+      "DevisVéto explique les documents vétérinaires et ne remplace pas l’avis de votre vétérinaire.",
     ]),
   };
 }

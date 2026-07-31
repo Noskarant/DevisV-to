@@ -16,16 +16,16 @@ export function NeedsInformationEmail({ petName, dashboardUrl }: NeedsInformatio
   const url = absoluteUrl(dashboardUrl, "/dashboard");
 
   return (
-    <EmailLayout appUrl={appUrl()} preview="Une information est necessaire pour terminer votre analyse." title="Information necessaire">
+    <EmailLayout appUrl={appUrl()} preview="Une information est nécessaire pour terminer votre analyse." title="Information nécessaire">
       <Text style={emailText}>Bonjour,</Text>
       <Text style={emailText}>
-        Pour terminer votre analyse du document de {animal}, une information complementaire est
-        necessaire.
+        Pour terminer votre analyse du document de {animal}, une information complémentaire est
+        nécessaire.
       </Text>
       <InfoCard title="Suite">
-        Connectez-vous a votre espace pour consulter le dossier et completer les informations demandees.
+        Connectez-vous à votre espace pour consulter le dossier et compléter les informations demandées.
       </InfoCard>
-      <EmailButton href={url}>Acceder a mon espace</EmailButton>
+      <EmailButton href={url}>Accéder à mon espace</EmailButton>
     </EmailLayout>
   );
 }
@@ -45,8 +45,8 @@ export function needsInformationEmail(props: NeedsInformationEmailProps): EmailT
     react: <NeedsInformationEmail {...props} dashboardUrl={url} />,
     text: lines([
       "Une information nous manque pour terminer votre analyse",
-      `Pour terminer l'analyse du document de ${animal}, une information complementaire est necessaire.`,
-      `Acceder a mon espace : ${url}`,
+      `Pour terminer l’analyse du document de ${animal}, une information complémentaire est nécessaire.`,
+      `Accéder à mon espace : ${url}`,
     ]),
   };
 }
