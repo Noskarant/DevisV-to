@@ -8,6 +8,13 @@ import { PurchaseOptions } from "./checkout-button";
 import { ReportActions } from "./report-actions";
 
 export const dynamic = "force-dynamic";
+export const metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
+};
 
 const sectionClass = "rounded-[28px] border border-[#d7e5e0] bg-white p-6 shadow-[0_16px_44px_rgba(31,78,67,0.08)] sm:p-9";
 const eyebrowClass = "text-[12px] font-semibold uppercase tracking-[0.09em] text-[#4f786f]";
@@ -60,7 +67,15 @@ function statusClass(line: PreviewLine) {
       : "bg-[#fff5dc] text-[#785b20]";
 }
 
-function SourceEvidence({ line, token }: { line: PreviewLine; token: string }) {
+function SourceEvidence({
+  line,
+  token,
+  canOpenDocument,
+}: {
+  line: PreviewLine;
+  token: string;
+  canOpenDocument: boolean;
+}) {
   return (
     <div className="mt-5 rounded-[20px] border border-[#d5e4df] bg-[#fbfcfb] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -70,7 +85,7 @@ function SourceEvidence({ line, token }: { line: PreviewLine; token: string }) {
           </span>
           {line.source_page && <span className="text-sm font-semibold text-[#527169]">Source : page {line.source_page}</span>}
         </div>
-        {line.source_page && (
+        {canOpenDocument && line.source_page && (
           <a
             href={`/api/public/document/${token}#page=${line.source_page}`}
             target="_blank"
@@ -94,7 +109,17 @@ function SourceEvidence({ line, token }: { line: PreviewLine; token: string }) {
   );
 }
 
-function ExplainedLine({ line, token, currency }: { line: PreviewLine; token: string; currency: string }) {
+function ExplainedLine({
+  line,
+  token,
+  currency,
+  canOpenDocument,
+}: {
+  line: PreviewLine;
+  token: string;
+  currency: string;
+  canOpenDocument: boolean;
+}) {
   const missing = line.elements_to_confirm.length ? line.elements_to_confirm : line.clarification ? [line.clarification] : [];
 
   return (
@@ -107,7 +132,7 @@ function ExplainedLine({ line, token, currency }: { line: PreviewLine; token: st
         <p className="shrink-0 text-lg font-semibold text-[#123f38]">{formatMoney(line.amount, currency)}</p>
       </div>
 
-      <SourceEvidence line={line} token={token} />
+      <SourceEvidence line={line} token={token} canOpenDocument={canOpenDocument} />
 
       <div className="mt-4 rounded-[20px] bg-[#edf6f2] px-5 py-5">
         <p className={eyebrowClass}>Ce que cela signifie</p>
@@ -234,7 +259,15 @@ export default async function PreviewPage({
                 <span className="text-sm font-semibold text-[#55736c]">{report.sourceCoverage}% des lignes reliées à un extrait</span>
               </div>
               <div className="mt-8 space-y-5">
-                {(paid ? preview.lines : [representativeLine]).map((line) => <ExplainedLine key={`${line.original_label}-${line.source_page}`} line={line} token={token} currency={preview.currency} />)}
+                {(paid ? preview.lines : [representativeLine]).map((line) => (
+                  <ExplainedLine
+                    key={`${line.original_label}-${line.source_page}`}
+                    line={line}
+                    token={token}
+                    currency={preview.currency}
+                    canOpenDocument={paid}
+                  />
+                ))}
               </div>
 
               {!paid && lockedLines.length > 0 && (
