@@ -143,15 +143,17 @@ function unique(values: Array<string | null | undefined>) {
 
 function representativeScore(line: PreviewLine, maxAmount: number) {
   const text = `${line.original_label} ${line.category} ${line.explanation}`.toLowerCase();
+  const highValueTerms = ["tplo", "ligament crois", "chirurgie", "opération", "osteotomie", "ostéotomie"];
   const complexTerms = ["anesth", "chirurg", "hospital", "radiograph", "échograph", "analyse", "bilan", "médicament", "perfusion", "surveillance", "biops", "imagerie"];
   const obviousTerms = ["consultation", "collerette", "frais de dossier"];
+  const valueBoost = highValueTerms.reduce((score, term) => score + (text.includes(term) ? 45 : 0), 0);
   const complexity = complexTerms.reduce((score, term) => score + (text.includes(term) ? 18 : 0), 0);
   const obviousPenalty = obviousTerms.some((term) => text.includes(term)) ? 35 : 0;
   const relativeAmount = line.amount !== null && maxAmount > 0 ? Math.min((line.amount / maxAmount) * 30, 30) : 0;
   const ambiguity = line.elements_to_confirm.length || line.clarification ? 32 : 0;
   const actionability = line.suggested_question ? 26 : 0;
   const evidence = line.source_page && line.source_quote ? 20 : 0;
-  return complexity + relativeAmount + ambiguity + actionability + evidence - obviousPenalty;
+  return valueBoost + complexity + relativeAmount + ambiguity + actionability + evidence - obviousPenalty;
 }
 
 export function selectRepresentativeLine(lines: PreviewLine[]): PreviewLine {

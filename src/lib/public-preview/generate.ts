@@ -48,31 +48,31 @@ const VULGARIZATION_TERMS = [
     pattern: /\bTPLO\b|ost[ée]otomie de nivellement du plateau tibial/i,
     term: "TPLO",
     explanation:
-      "TPLO signifie osteotomie de nivellement du plateau tibial : c'est une chirurgie du genou souvent mentionnee lors d'une rupture du ligament croise chez le chien. Le document chiffre ici l'acte, sans dire a lui seul si l'intervention est necessaire.",
+      "TPLO signifie ostéotomie de nivellement du plateau tibial : c'est une chirurgie du genou souvent mentionnée lors d'une rupture du ligament croisé chez le chien. Le document chiffre ici l'acte, sans dire à lui seul si l'intervention est nécessaire.",
   },
   {
     pattern: /\bCRP\b|proteine c.?reactive/i,
     term: "CRP",
     explanation:
-      "CRP signifie proteine C-reactive : c'est un marqueur sanguin d'inflammation. Le devis facture l'analyse, pas l'interpretation medicale du resultat.",
+      "CRP signifie protéine C-réactive : c'est un marqueur sanguin d'inflammation. Le devis facture l'analyse, pas l'interprétation médicale du résultat.",
   },
   {
     pattern: /\bNFS\b|num[ée]ration formule sanguine/i,
     term: "NFS",
     explanation:
-      "NFS signifie numeration formule sanguine : c'est une analyse qui compte notamment les globules rouges, globules blancs et plaquettes.",
+      "NFS signifie numération formule sanguine : c'est une analyse qui compte notamment les globules rouges, globules blancs et plaquettes.",
   },
   {
     pattern: /\bIV\b|intraveineuse/i,
     term: "IV",
     explanation:
-      "IV signifie intraveineux : cela correspond a une administration par voie veineuse, par exemple pour une perfusion ou certains medicaments.",
+      "IV signifie intraveineux : cela correspond à une administration par voie veineuse, par exemple pour une perfusion ou certains médicaments.",
   },
   {
     pattern: /\bPU\b|prix unitaire/i,
     term: "PU",
     explanation:
-      "PU signifie prix unitaire : c'est le prix d'une unite avant multiplication par la quantite.",
+      "PU signifie prix unitaire : c'est le prix d'une unité avant multiplication par la quantité.",
   },
   {
     pattern: /\bHT\b|hors taxes/i,
@@ -84,49 +84,49 @@ const VULGARIZATION_TERMS = [
     pattern: /\bTTC\b|toutes taxes comprises/i,
     term: "TTC",
     explanation:
-      "TTC signifie toutes taxes comprises : c'est le montant apres ajout des taxes.",
+      "TTC signifie toutes taxes comprises : c'est le montant après ajout des taxes.",
   },
   {
     pattern: /\bTVA\b/i,
     term: "TVA",
     explanation:
-      "TVA signifie taxe sur la valeur ajoutee : c'est la taxe appliquee a certaines lignes ou au total.",
+      "TVA signifie taxe sur la valeur ajoutée : c'est la taxe appliquée à certaines lignes ou au total.",
   },
   {
     pattern: /monitoring anesth[ée]sique|monitorage/i,
     term: "monitoring anesthesique",
     explanation:
-      "Le monitoring anesthesique correspond a la surveillance des constantes pendant l'anesthesie, par exemple respiration, rythme cardiaque ou oxygenation selon l'equipement utilise.",
+      "Le monitoring anesthésique correspond à la surveillance des constantes pendant l'anesthésie, par exemple respiration, rythme cardiaque ou oxygénation selon l'équipement utilisé.",
   },
   {
     pattern: /s[ée]dation/i,
     term: "sedation",
     explanation:
-      "La sedation consiste a calmer ou endormir partiellement l'animal pour permettre un examen ou un soin dans de meilleures conditions.",
+      "La sédation consiste à calmer ou endormir partiellement l'animal pour permettre un examen ou un soin dans de meilleures conditions.",
   },
   {
     pattern: /biochimie/i,
     term: "biochimie",
     explanation:
-      "La biochimie est une analyse sanguine qui explore le fonctionnement de certains organes et equilibres internes. Le devis facture l'examen, pas la conclusion medicale.",
+      "La biochimie est une analyse sanguine qui explore le fonctionnement de certains organes et équilibres internes. Le devis facture l'examen, pas la conclusion médicale.",
   },
   {
     pattern: /ionogramme/i,
     term: "ionogramme",
     explanation:
-      "L'ionogramme mesure des sels mineraux du sang comme le sodium, le potassium ou le chlore, utiles pour evaluer certains equilibres de l'organisme.",
+      "L'ionogramme mesure des sels minéraux du sang comme le sodium, le potassium ou le chlore, utiles pour évaluer certains équilibres de l'organisme.",
   },
   {
     pattern: /incidence/i,
     term: "incidence radiographique",
     explanation:
-      "Une incidence radiographique correspond a un angle ou une position de prise de vue. Plusieurs incidences peuvent etre necessaires pour voir une zone sous differents angles.",
+      "Une incidence radiographique correspond à un angle ou une position de prise de vue. Plusieurs incidences peuvent être nécessaires pour voir une zone sous différents angles.",
   },
   {
     pattern: /antalgique|opio[iï]de/i,
     term: "antalgique opioide",
     explanation:
-      "Un antalgique est un medicament contre la douleur. Opioide designe une famille d'antalgiques puissants, dont l'usage exact doit etre precise par la clinique.",
+      "Un antalgique est un médicament contre la douleur. Opioïde désigne une famille d'antalgiques puissants, dont l'usage exact doit être précisé par la clinique.",
   },
 ];
 
@@ -136,8 +136,6 @@ function addPlainLanguageDefinitions(line: PreviewPayload["lines"][number]) {
     line.category,
     line.explanation,
     line.source_quote,
-    ...line.explicit_elements,
-    ...line.elements_to_confirm,
   ]
     .filter(Boolean)
     .join(" ");
